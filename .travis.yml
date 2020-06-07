@@ -1,0 +1,26 @@
+language: node_js
+node_js: stable
+branches:
+  only:
+  - source
+before_install:
+- npm config set user 0
+- npm config set unsafe-perm true
+- npm install -g hexo-cli
+- npm install -g hexo
+install:
+- npm install
+script:
+- hexo clean
+- hexo generate
+after_success:
+  - cd ./public
+  - git init
+  - git config --global user.name 'cupofish@gmail.com'
+  # - git config --global user.email 'wangming19932008@163.com'
+  - git add *
+  - git commit -a -m "generate static resources, triggerd by travis ci"
+  - git push --force "https://AngusLean:${REPO_TOKEN}@${GH_REF}" master:master
+env:
+  global:
+    - GH_REF: github.com/AngusLean/AngusLean.github.io.git

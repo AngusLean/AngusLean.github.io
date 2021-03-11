@@ -37,28 +37,25 @@ jobs:
         npm install -g hexo-cli
         npm install
 
-    - name: Generate files
-      # 编译 markdown 文件
-      run: |
-        hexo clean
-        hexo generate
-
     - name: Deploy hexo blog
       env: 
         # Github 仓库
         GITHUB_REPO: git@github.com:AngusLean/AngusLean.github.io.git
+        HEXO_DEPLOY_PRI: ${{secrets.DEPLOY_KEY}}
         # Coding 仓库
         # CODING_REPO: e.coding.net/yifanzheng/blogs.git
         # Gitee 仓库
         # GITEE_REPO: gitee.com/yifanzheng/yifangzheng.gitee.io.git
       # 将编译后的博客文件推送到指定仓库
       run: |
-        #cd ./public && git init && git add .
-        git config user.name "anguslean"
-        git config user.email "cupofish"
-        # git add .
-        # git commit -m "GitHub Actions Auto Builder at $(date +'%Y-%m-%d %H:%M:%S')"
-        # git push --force --quiet "https://${{ secrets.DEPLOY_KEY }}@$GITHUB_REPO" master:master
-        hexo g -d
-        # git push --force --quiet "https://RoYFbFDSfM:${{ secrets.CODING_TOKEN }}@$CODING_REPO" master:master
-        # git push --force --quiet "https://yifanzheng:${{ secrets.GITEE_ACCESS_TOKEN }}@$GITEE_REPO" master:master
+        mkdir -p ~/.ssh/
+        echo "$HEXO_DEPLOY_PRI" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan github.com >> ~/.ssh/known_hosts
+        git config --global user.name "yourname"
+        git config --global user.email "your@email.com"
+        
+    - name: Generate files
+      # 编译 markdown 文件
+      run: |
+        hexo g -d    

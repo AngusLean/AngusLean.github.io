@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches:
-      - master
+      - source
 
 env:
   GIT_USER: AngusLean

@@ -38,7 +38,7 @@ jobs:
         npm install hexo-deployer-git --save
         npm install
 
-    - name: Deploy hexo blog
+    - name: set git env
       env: 
         # Github 仓库
         GITHUB_REPO: git@github.com:AngusLean/AngusLean.github.io.git
@@ -56,7 +56,7 @@ jobs:
         git config --global user.name "anguslean"
         git config --global user.email "cupofish@email.com"
         
-    - name: Generate files
+    - name: Generate files And Deploy
       # 编译 markdown 文件
       run: |
         hexo g -d    

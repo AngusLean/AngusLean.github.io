@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang>
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.0" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.1.0',
+    sidebar: {"position":"left","display":"always","offset":12,"onmobile":false,"dimmer":true},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="编码知识unicodeUnicode编码相关的文章网上已经是汗牛充栋，这里直接粘贴维基百科的一段描述:  Unicode（中文：万国码、国际码、统一码、单一码）是计算机科学领域里的一项业界标准。它对世界上大部分的文字系统进行了整理、编码，使得电脑可以用更为简单的方式来呈现和处理文字。Unicode是为了解决传统的字符编码方案的局限而产生的，例如ISO 8859-1所定义的字符虽然在不同的国家中广泛">
+<meta property="og:type" content="article">
+<meta property="og:title" content="从String对象查看Java对象内存布局情况">
+<meta property="og:url" content="http://www.anguslean.cn/2018/06/01/Java/JVM/从String对象查看Java对象内存布局情况/index.html">
+<meta property="og:site_name" content="AngusLean Blog">
+<meta property="og:description" content="编码知识unicodeUnicode编码相关的文章网上已经是汗牛充栋，这里直接粘贴维基百科的一段描述:  Unicode（中文：万国码、国际码、统一码、单一码）是计算机科学领域里的一项业界标准。它对世界上大部分的文字系统进行了整理、编码，使得电脑可以用更为简单的方式来呈现和处理文字。Unicode是为了解决传统的字符编码方案的局限而产生的，例如ISO 8859-1所定义的字符虽然在不同的国家中广泛">
+<meta property="og:locale" content="default">
+<meta property="og:updated_time" content="2018-06-06T16:00:00.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="从String对象查看Java对象内存布局情况">
+<meta name="twitter:description" content="编码知识unicodeUnicode编码相关的文章网上已经是汗牛充栋，这里直接粘贴维基百科的一段描述:  Unicode（中文：万国码、国际码、统一码、单一码）是计算机科学领域里的一项业界标准。它对世界上大部分的文字系统进行了整理、编码，使得电脑可以用更为简单的方式来呈现和处理文字。Unicode是为了解决传统的字符编码方案的局限而产生的，例如ISO 8859-1所定义的字符虽然在不同的国家中广泛">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.anguslean.cn/2018/06/01/Java/JVM/从String对象查看Java对象内存布局情况/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>从String对象查看Java对象内存布局情况 | AngusLean Blog</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="default">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">AngusLean Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>Home</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>Categories</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>Archives</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>Tags</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>About</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.anguslean.cn/2018/06/01/Java/JVM/从String对象查看Java对象内存布局情况/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="cupofish@gmail.com">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="AngusLean Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">从String对象查看Java对象内存布局情况
+
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2018-06-01 00:00:00" itemprop="dateCreated datePublished" datetime="2018-06-01T00:00:00+08:00">2018-06-01</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2018-06-07 00:00:00" itemprop="dateModified" datetime="2018-06-07T00:00:00+08:00">2018-06-07</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Programming-Language/" itemprop="url" rel="index"><span itemprop="name">Programming Language</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Programming-Language/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Programming-Language/Java/语言/" itemprop="url" rel="index"><span itemprop="name">语言</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Programming-Language/Java/语言/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="编码知识"><a href="#编码知识" class="headerlink" title="编码知识"></a>编码知识</h2><h3 id="unicode"><a href="#unicode" class="headerlink" title="unicode"></a>unicode</h3><p><code>Unicode</code>编码相关的文章网上已经是汗牛充栋，这里直接粘贴维基百科的一段描述:</p>
+<blockquote>
+<p>Unicode（中文：万国码、国际码、统一码、单一码）是计算机科学领域里的一项业界标准。它对世界上大部分的文字系统进行了整理、编码，使得电脑可以用更为简单的方式来呈现和处理文字。<br>Unicode是为了解决传统的字符编码方案的局限而产生的，例如ISO 8859-1所定义的字符虽然在不同的国家中广泛地使用，可是在不同国家间却经常出现不兼容的情况。很多传统的编码方式都有一个共同的问题，即容许电脑处理双语环境（通常使用拉丁字母以及其本地语言），但却无法同时支持多语言环境（指可同时处理多种语言混合的情况<br>在文字处理方面，统一码为每一个字符而非字形定义唯一的代码（即一个整数）。换句话说，统一码以一种抽象的方式（即数字）来处理字符，并将视觉上的演绎工作（例如字体大小、外观形状、字体形态、文体等）留给其他软件来处理，例如网页浏览器或是文字处理器</p>
+</blockquote>
+<p>所以简单的说，<code>Unicode</code>编码就是把世界上很多的文字的字符都统一给编码为了一个唯一数字。</p>
+<a id="more"></a>
+<h3 id="UCS-2"><a href="#UCS-2" class="headerlink" title="UCS-2"></a>UCS-2</h3><p><code>Unicode</code>编码是由<code>Xerox, Apple</code>等公司再1988年组成的统一码联盟所指定的字符集标准。在差不多的时间，国际标准化组织(ISO) ISO 10646 创建了统一字符码集合(<code>Universal Coded Character Set (UCS)</code>)。</p>
+<blockquote>
+<p>UCS不仅给每个字符分配一个代码，而且赋予了一个正式的名字。表示一个UCS或Unicode值的十六进制数通常在前面加上“U+”，例如“U+0041”代表字符“A”</p>
+</blockquote>
+<p>而UCS-2是ISO 10646标准的一种编码方式，它对每个字节都使用2 byte来保存，类似的还有UCS-4 - 即使用4 byte来保存每个字符。 而UCS-2使用2 byte来保存字符，那么范围就在U+0000 - U+FFFF了，也就是最多65536个。 这个区间也被称为基本多文种平面(<code>the Basic Multilingual Plane</code>)。</p>
+<p>后面<code>Unicode</code>和<code>ISO</code>统一了字符编码，使得同一个字符在<code>Unicode</code>和<code>ISO 10664</code>的编码都是一致的。</p>
+<h3 id="UTF-8-UTF-16"><a href="#UTF-8-UTF-16" class="headerlink" title="UTF-8, UTF-16"></a>UTF-8, UTF-16</h3><p>上面讲的<code>Unicode</code>它指明了一个字符对应的编码是多少，但是在实际传输或者存储过程中，由于不同系统平台的设计不一定一致、节省空间等目的，所以有了<code>Unicode</code>的实现方式，称为<strong>Unicode转换格式(<code>Unicode Transformation Format, UTF</code>)</strong><br>比如说，一个仅包含7位(bit)的ASCII字符，也是用<code>Unicode</code>编码为2 byte长度，明显浪费了太多空间。所以有了UTF8, UTF16</p>
+<h4 id="UTF8"><a href="#UTF8" class="headerlink" title="UTF8"></a>UTF8</h4><p><code>UTF8</code>是一种变长字节编码，它将基本7位ASCII字符仍用7位表示（占用1 byte, 首位补0），而对于其他字符则使用一定算法转换位1-3 byte来编码，并且利用首位为0或者1进行识别。</p>
+<h4 id="UTF-16"><a href="#UTF-16" class="headerlink" title="UTF-16"></a>UTF-16</h4><p><code>UTF-16</code>也是一种变长字节编码，它使用2 byte或者4 byte来表示字符。上面说过，基本多语言平面的范围是U+0000 - U+FFFF，所以在UTF-16中，基本多语言平面范围内的字符被编码为2 byte,而其他范围的则是4 byte。</p>
+<h2 id="Java中字符串的处理"><a href="#Java中字符串的处理" class="headerlink" title="Java中字符串的处理"></a>Java中字符串的处理</h2><h3 id="JVM规范"><a href="#JVM规范" class="headerlink" title="JVM规范"></a>JVM规范</h3><p>在<a href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-2.html#jvms-2.3" target="_blank" rel="noopener">JVM规范中数据类型定义</a>中可以看到:</p>
+<blockquote>
+<p>char, whose values are 16-bit unsigned integers representing Unicode code points in the Basic Multilingual Plane, encoded with UTF-16, and whose default value is the null code point (‘\u0000’)<br>char, 值为16位无符号整形，代表BMP中的<code>Unicode</code>编码， 使用UTF-16进行编码。默认值为<code>\u0000</code></p>
+</blockquote>
+<p>所以这里可以很明显的看到，JVM对于<code>char</code>，保存为2 byte, 16 bit. 但是，<code>char</code>可以保存的字符范围是BMP, U+0000 - U+FFFF， 所以对于超出这个范围的字符，则需要上层语言自行处理。</p>
+<h3 id="Java中String的实现"><a href="#Java中String的实现" class="headerlink" title="Java中String的实现"></a>Java中String的实现</h3><p>首先必须提到的是，Java中的<code>char</code>基本类型与JVM的<code>char</code>是一一对应的。<br>上面提到，对于范围在U+0000-U+FFFF的范围，<code>char</code>可以直接保存，而超出这个范围的则不行。大部分中文都在这个BMP范围，所以<code>char</code>是可以保存一个中文的。</p>
+<p>如果需要保存超出BMP范围的字符或者多个BMP字符，则需要用到<code>String</code>类型。<code>String</code>在Java中是一个类，而对于JVM来说是不存在的，Java中的任何类在JVM中都对应着一个<code>reference</code>。<br><code>String</code>使用<code>char[]</code>来保存当前对象代表的字符串。如果字符串中由字符超过BMP了是怎么处理的？</p>
+<p>String源码中从Unicode编码到字符串的代码如下:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">String</span><span class="params">(<span class="keyword">int</span>[] codePoints, <span class="keyword">int</span> offset, <span class="keyword">int</span> count)</span> </span>&#123;</span><br><span class="line">    <span class="comment">//忽略边界检查</span></span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> end = offset + count;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Pass 1: Compute precise size of char[]</span></span><br><span class="line">    <span class="keyword">int</span> n = count;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = offset; i &lt; end; i++) &#123;</span><br><span class="line">        <span class="keyword">int</span> c = codePoints[i];</span><br><span class="line">        <span class="comment">//判断是否是BMP字符，如果不是长度+1</span></span><br><span class="line">        <span class="keyword">if</span> (Character.isBmpCodePoint(c))</span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (Character.isValidCodePoint(c))</span><br><span class="line">            n++;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(Integer.toString(c));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Pass 2: Allocate and fill in char[]</span></span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">char</span>[] v = <span class="keyword">new</span> <span class="keyword">char</span>[n];</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = offset, j = <span class="number">0</span>; i &lt; end; i++, j++) &#123;</span><br><span class="line">        <span class="keyword">int</span> c = codePoints[i];</span><br><span class="line">        <span class="comment">//如果是BMP字符，则素组索引处直接设置为该值</span></span><br><span class="line">        <span class="keyword">if</span> (Character.isBmpCodePoint(c))</span><br><span class="line">            v[j] = (<span class="keyword">char</span>)c;</span><br><span class="line">        <span class="keyword">else</span></span><br><span class="line">            <span class="comment">//如果不是，则调用了另外一个方法并且把下标+1</span></span><br><span class="line">            Character.toSurrogates(c, v, j++);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">this</span>.value = v;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>调用的函数为:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">toSurrogates</span><span class="params">(<span class="keyword">int</span> codePoint, <span class="keyword">char</span>[] dst, <span class="keyword">int</span> index)</span> </span>&#123;</span><br><span class="line">    dst[index+<span class="number">1</span>] = lowSurrogate(codePoint);</span><br><span class="line">    dst[index] = highSurrogate(codePoint);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">char</span> <span class="title">highSurrogate</span><span class="params">(<span class="keyword">int</span> codePoint)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> (<span class="keyword">char</span>) ((codePoint &gt;&gt;&gt; <span class="number">10</span>)</span><br><span class="line">                   + (MIN_HIGH_SURROGATE - (MIN_SUPPLEMENTARY_CODE_POINT &gt;&gt;&gt; <span class="number">10</span>)));</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">char</span> <span class="title">lowSurrogate</span><span class="params">(<span class="keyword">int</span> codePoint)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> (<span class="keyword">char</span>) ((codePoint &amp; <span class="number">0x3ff</span>) + MIN_LOW_SURROGATE);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>所以可以看到，对于超过了BMP范围的字符，<code>String</code>使用2个<code>char</code>来保存，也就是2*2=4 byte来保存，否则就是2 byte</p>
+<h3 id="内存占用分析"><a href="#内存占用分析" class="headerlink" title="内存占用分析"></a>内存占用分析</h3><h4 id="char"><a href="#char" class="headerlink" title="char"></a><code>char</code></h4><p>前面说过，Java中<code>char</code>与JVM的一一对应，所以它占用的就是2 byte, 16 bit。对于它不能保存的则使用<code>String</code>来保存。</p>
+<h4 id="String"><a href="#String" class="headerlink" title="String"></a><code>String</code></h4><p><code>String</code>是一个对象，分析Java中对象的内存占用必须考虑到Java对象的内存布局。<br>在JVM的规范中并没有规定一个对象具体要如何存储，对象存储结构的细节属于JVM实现。这里我们分析最为流行的<code>Hotspot JVM</code>.</p>
+<p>HotSpot JVM的源码中关于内存布局有如下的<a href="http://hg.openjdk.java.net/jdk8/jdk8/hotspot/file/87ee5ee27509/src/share/vm/oops/markOop.hpp" target="_blank" rel="noopener">注释</a>:<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//  32 bits:</span></span><br><span class="line"><span class="comment">//  --------</span></span><br><span class="line"><span class="comment">//             hash:25 ------------&gt;| age:4    biased_lock:1 lock:2 (normal object)</span></span><br><span class="line"><span class="comment">//             JavaThread*:23 epoch:2 age:4    biased_lock:1 lock:2 (biased object)</span></span><br><span class="line"><span class="comment">//             size:32 ------------------------------------------&gt;| (CMS free block)</span></span><br><span class="line"><span class="comment">//             PromotedObject*:29 ----------&gt;| promo_bits:3 -----&gt;| (CMS promoted object)</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">//  64 bits:</span></span><br><span class="line"><span class="comment">//  --------</span></span><br><span class="line"><span class="comment">//  unused:25 hash:31 --&gt;| unused:1   age:4    biased_lock:1 lock:2 (normal object)</span></span><br><span class="line"><span class="comment">//  JavaThread*:54 epoch:2 unused:1   age:4    biased_lock:1 lock:2 (biased object)</span></span><br><span class="line"><span class="comment">//  PromotedObject*:61 ---------------------&gt;| promo_bits:3 -----&gt;| (CMS promoted object)</span></span><br><span class="line"><span class="comment">//  size:64 -----------------------------------------------------&gt;| (CMS free block)</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">//  unused:25 hash:31 --&gt;| cms_free:1 age:4    biased_lock:1 lock:2 (COOPs &amp;&amp; normal object)</span></span><br><span class="line"><span class="comment">//  JavaThread*:54 epoch:2 cms_free:1 age:4    biased_lock:1 lock:2 (COOPs &amp;&amp; biased object)</span></span><br><span class="line"><span class="comment">//  narrowOop:32 unused:24 cms_free:1 unused:4 promo_bits:3 -----&gt;| (COOPs &amp;&amp; CMS promoted object)</span></span><br><span class="line"><span class="comment">//  unused:21 size:35 --&gt;| cms_free:1 unused:7 ------------------&gt;| (COOPs &amp;&amp; CMS free block)</span></span><br></pre></td></tr></table></figure></p>
+<p>上面的注释中几个名词的解释:</p>
+<blockquote>
+<ul>
+<li>hash包含了唯一Hash编码。最长为31 bit。</li>
+<li><code>biased_lock</code> 偏心锁。用来给指定的线程指定偏心锁，当低3位的这个标志被设置的时候，锁就要么是针对某个线程要么是针对“匿名”偏心。</li>
+<li><code>OOP</code>,<code>ordinary object pointer</code>,普通对象指针，它用来表示对象的实例信息。正常情况下就是一个本地机器指针。这就意味着在<a href="https://docs.oracle.com/cd/E19620-01/805-3024/lp64-1/index.html" target="_blank" rel="noopener">LP32</a>上这个指针就是32位，<a href="https://docs.oracle.com/cd/E19620-01/805-3024/lp64-1/index.html" target="_blank" rel="noopener">LP64</a> JDK上这个指针就是64位。 所以，这也意味着在64位上相同的代码会是32位上占用的堆空间的1.5倍左右。32位机器最大可用堆差不多4g，而64位</li>
+<li><code>Compressed OOPS</code>, 压缩普通对象指针，这就是为了解决上面的指针导致占用空间膨胀，并且一般情况下用不到64位的堆范围，所以采用了一些手段堆这个字段进行压缩。原理简单的说就是把64位指针地址改为64位基础地址加上一个32位偏移量，<a href="https://blog.csdn.net/lqp276/article/details/52231261" target="_blank" rel="noopener">中文参考</a>,<a href="https://wiki.openjdk.java.net/display/HotSpot/CompressedOops" target="_blank" rel="noopener">openJDK文档</a></li>
+</ul>
+</blockquote>
+<p>由于压缩对象指针这个优化的影响，我们将分别查看开启和关闭该选项情况下的资源占用情况。<br><code>Oracle</code>提供了一个<a href="http://openjdk.java.net/projects/code-tools/jol/" target="_blank" rel="noopener">JOL</a>工具可以帮助分析内存布局，我们使用该工具，分析如下代码:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//注意加入JOL包的依赖</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LayOutDemo</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        out.println(VM.current().details());</span><br><span class="line">        String ins = <span class="string">"哈哈哈哈哈哈哈哈"</span>;</span><br><span class="line">        out.println(ClassLayout.parseClass(java.lang.String<span class="class">.<span class="keyword">class</span>).<span class="title">toPrintable</span>())</span>;</span><br><span class="line">        out.println(ClassLayout.parseInstance(ins).toPrintable());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>使用<code>-XX:-UseCompressedOops</code>关闭指针优化的输出:</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Running 64-bit HotSpot VM.</span></span><br><span class="line"><span class="comment"># Objects are 8 bytes aligned.</span></span><br><span class="line"><span class="comment"># Field sizes by type: 8, 1, 1, 2, 2, 4, 4, 8, 8 [bytes]</span></span><br><span class="line"><span class="comment"># Array element sizes: 8, 1, 1, 2, 2, 4, 4, 8, 8 [bytes]</span></span><br><span class="line"></span><br><span class="line"><span class="attr">java.lang.String object internals:</span></span><br><span class="line"> <span class="string">OFFSET</span>  <span class="string">SIZE</span>     <span class="string">TYPE</span> <span class="string">DESCRIPTION</span>                               <span class="string">VALUE</span></span><br><span class="line">      <span class="number">0</span>    <span class="number">16</span>          <span class="string">(object</span> <span class="string">header)</span>                           <span class="string">N/A</span></span><br><span class="line">     <span class="number">16</span>     <span class="number">8</span>   <span class="string">char[]</span> <span class="string">String.value</span>                              <span class="string">N/A</span></span><br><span class="line">     <span class="number">24</span>     <span class="number">4</span>      <span class="string">int</span> <span class="string">String.hash</span>                               <span class="string">N/A</span></span><br><span class="line">     <span class="number">28</span>     <span class="number">4</span>          <span class="string">(loss</span> <span class="string">due</span> <span class="string">to</span> <span class="string">the</span> <span class="string">next</span> <span class="string">object</span> <span class="string">alignment)</span></span><br><span class="line"><span class="attr">Instance size:</span> <span class="number">32</span> <span class="string">bytes</span></span><br><span class="line"><span class="attr">Space losses:</span> <span class="number">0</span> <span class="string">bytes</span> <span class="string">internal</span> <span class="string">+</span> <span class="number">4</span> <span class="string">bytes</span> <span class="string">external</span> <span class="string">=</span> <span class="number">4</span> <span class="string">bytes</span> <span class="string">total</span></span><br><span class="line"></span><br><span class="line"><span class="attr">java.lang.String object internals:</span></span><br><span class="line"> <span class="string">OFFSET</span>  <span class="string">SIZE</span>     <span class="string">TYPE</span> <span class="string">DESCRIPTION</span>                               <span class="string">VALUE</span></span><br><span class="line">      <span class="number">0</span>     <span class="number">4</span>          <span class="string">(object</span> <span class="string">header)</span>                           <span class="number">01</span> <span class="number">00</span> <span class="number">00</span> <span class="number">00</span> <span class="string">(00000001</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span><span class="string">)</span> <span class="string">(1)</span></span><br><span class="line">      <span class="number">4</span>     <span class="number">4</span>          <span class="string">(object</span> <span class="string">header)</span>                           <span class="number">00</span> <span class="number">00</span> <span class="number">00</span> <span class="number">00</span> <span class="string">(00000000</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span><span class="string">)</span> <span class="string">(0)</span></span><br><span class="line">      <span class="number">8</span>     <span class="number">4</span>          <span class="string">(object</span> <span class="string">header)</span>                           <span class="number">78</span> <span class="string">8f</span> <span class="string">cd</span> <span class="string">1b</span> <span class="string">(01111000</span> <span class="number">10001111</span> <span class="number">11001101</span> <span class="number">00011011</span><span class="string">)</span> <span class="string">(466456440)</span></span><br><span class="line">     <span class="number">12</span>     <span class="number">4</span>          <span class="string">(object</span> <span class="string">header)</span>                           <span class="number">00</span> <span class="number">00</span> <span class="number">00</span> <span class="number">00</span> <span class="string">(00000000</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span><span class="string">)</span> <span class="string">(0)</span></span><br><span class="line">     <span class="number">16</span>     <span class="number">8</span>   <span class="string">char[]</span> <span class="string">String.value</span>                              <span class="string">[哈,</span> <span class="string">哈,</span> <span class="string">哈,</span> <span class="string">哈,</span> <span class="string">哈,</span> <span class="string">哈,</span> <span class="string">哈,</span> <span class="string">哈]</span></span><br><span class="line">     <span class="number">24</span>     <span class="number">4</span>      <span class="string">int</span> <span class="string">String.hash</span>                               <span class="number">0</span></span><br><span class="line">     <span class="number">28</span>     <span class="number">4</span>          <span class="string">(loss</span> <span class="string">due</span> <span class="string">to</span> <span class="string">the</span> <span class="string">next</span> <span class="string">object</span> <span class="string">alignment)</span></span><br><span class="line"><span class="attr">Instance size:</span> <span class="number">32</span> <span class="string">bytes</span></span><br><span class="line"><span class="attr">Space losses:</span> <span class="number">0</span> <span class="string">bytes</span> <span class="string">internal</span> <span class="string">+</span> <span class="number">4</span> <span class="string">bytes</span> <span class="string">external</span> <span class="string">=</span> <span class="number">4</span> <span class="string">bytes</span> <span class="string">total</span></span><br></pre></td></tr></table></figure>
+<p>所以我们看到在关闭优化的64位JDK上，String对象头长度为16个字节，然后紧接是两个成员变量:</p>
+<ul>
+<li><code>hash</code> int类型,长度4个字节</li>
+<li><code>value[]</code> char类型，长度8个字节（因为它实际上是个指针，所以在64位系统上就是8字节。该指针指向的堆地址才是这个字符串字面量的实际位置）</li>
+</ul>
+<p>此时，对象长度为28，此时需要<a href="https://en.wikipedia.org/wiki/Data_structure_alignment" target="_blank" rel="noopener">对齐</a>，所以有了额外的4字节，这个<code>String</code>对象的总大小为32字节。 但是还不包括这个字符串数组。<br>数组对象在内存中的结构与上面的内存布局描述没有差别，只是多了一个<code>int</code>型的<code>size</code>成员变量标识数组长度。所以可以知道这个字符串数组的大小为16（头）+4（<code>size</code>）+8*2 (<code>char</code>长度为2) = 36字节。</p>
+<p>所以，为了保存一个8个字符的中文，需要36字节的字符串数组加上32字节的管理这个数组的<code>String</code>对象。总空间占用比（总共占用空间除以字符串本身大小）为68 / 16 = 4.25. 相较于在C中使用<code>w_char*</code>，空间浪费的却较为严重。</p>
+<p>那么，再查看下开启指针压缩的情况,使用<code>-XX:+UseCompressedOops</code>开启这个优化:</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Running 64-bit HotSpot VM.</span></span><br><span class="line"><span class="comment"># Using compressed oop with 3-bit shift.</span></span><br><span class="line"><span class="comment"># Using compressed klass with 3-bit shift.</span></span><br><span class="line"><span class="comment"># Objects are 8 bytes aligned.</span></span><br><span class="line"><span class="comment"># Field sizes by type: 4, 1, 1, 2, 2, 4, 4, 8, 8 [bytes]</span></span><br><span class="line"><span class="comment"># Array element sizes: 4, 1, 1, 2, 2, 4, 4, 8, 8 [bytes]</span></span><br><span class="line"></span><br><span class="line"><span class="attr">java.lang.String object internals:</span></span><br><span class="line"> <span class="string">OFFSET</span>  <span class="string">SIZE</span>     <span class="string">TYPE</span> <span class="string">DESCRIPTION</span>                               <span class="string">VALUE</span></span><br><span class="line">      <span class="number">0</span>    <span class="number">12</span>          <span class="string">(object</span> <span class="string">header)</span>                           <span class="string">N/A</span></span><br><span class="line">     <span class="number">12</span>     <span class="number">4</span>   <span class="string">char[]</span> <span class="string">String.value</span>                              <span class="string">N/A</span></span><br><span class="line">     <span class="number">16</span>     <span class="number">4</span>      <span class="string">int</span> <span class="string">String.hash</span>                               <span class="string">N/A</span></span><br><span class="line">     <span class="number">20</span>     <span class="number">4</span>          <span class="string">(loss</span> <span class="string">due</span> <span class="string">to</span> <span class="string">the</span> <span class="string">next</span> <span class="string">object</span> <span class="string">alignment)</span></span><br><span class="line"><span class="attr">Instance size:</span> <span class="number">24</span> <span class="string">bytes</span></span><br><span class="line"><span class="attr">Space losses:</span> <span class="number">0</span> <span class="string">bytes</span> <span class="string">internal</span> <span class="string">+</span> <span class="number">4</span> <span class="string">bytes</span> <span class="string">external</span> <span class="string">=</span> <span class="number">4</span> <span class="string">bytes</span> <span class="string">total</span></span><br><span class="line"></span><br><span class="line"><span class="attr">java.lang.String object internals:</span></span><br><span class="line"> <span class="string">OFFSET</span>  <span class="string">SIZE</span>     <span class="string">TYPE</span> <span class="string">DESCRIPTION</span>                               <span class="string">VALUE</span></span><br><span class="line">      <span class="number">0</span>     <span class="number">4</span>          <span class="string">(object</span> <span class="string">header)</span>                           <span class="number">01</span> <span class="number">00</span> <span class="number">00</span> <span class="number">00</span> <span class="string">(00000001</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span><span class="string">)</span> <span class="string">(1)</span></span><br><span class="line">      <span class="number">4</span>     <span class="number">4</span>          <span class="string">(object</span> <span class="string">header)</span>                           <span class="number">00</span> <span class="number">00</span> <span class="number">00</span> <span class="number">00</span> <span class="string">(00000000</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span><span class="string">)</span> <span class="string">(0)</span></span><br><span class="line">      <span class="number">8</span>     <span class="number">4</span>          <span class="string">(object</span> <span class="string">header)</span>                           <span class="string">da</span> <span class="number">02</span> <span class="number">00</span> <span class="string">f8</span> <span class="string">(11011010</span> <span class="number">00000010</span> <span class="number">00000000</span> <span class="number">11111000</span><span class="string">)</span> <span class="string">(-134216998)</span></span><br><span class="line">     <span class="number">12</span>     <span class="number">4</span>   <span class="string">char[]</span> <span class="string">String.value</span>                              <span class="string">[哈,</span> <span class="string">哈,</span> <span class="string">哈,</span> <span class="string">哈,</span> <span class="string">哈,</span> <span class="string">哈,</span> <span class="string">哈,</span> <span class="string">哈,</span> <span class="string">哈,</span> <span class="string">哈,</span> <span class="string">哈,</span> <span class="string">哈,</span> <span class="string">哈,</span> <span class="string">哈,</span> <span class="string">哈,</span> <span class="string">哈,</span> <span class="string">哈,</span> <span class="string">哈,</span> <span class="string">哈,</span> <span class="string">哈,</span> <span class="string">哈,</span> <span class="string">哈,</span> <span class="string">哈,</span> <span class="string">哈]</span></span><br><span class="line">     <span class="number">16</span>     <span class="number">4</span>      <span class="string">int</span> <span class="string">String.hash</span>                               <span class="number">0</span></span><br><span class="line">     <span class="number">20</span>     <span class="number">4</span>          <span class="string">(loss</span> <span class="string">due</span> <span class="string">to</span> <span class="string">the</span> <span class="string">next</span> <span class="string">object</span> <span class="string">alignment)</span></span><br><span class="line"><span class="attr">Instance size:</span> <span class="number">24</span> <span class="string">bytes</span></span><br><span class="line"><span class="attr">Space losses:</span> <span class="number">0</span> <span class="string">bytes</span> <span class="string">internal</span> <span class="string">+</span> <span class="number">4</span> <span class="string">bytes</span> <span class="string">external</span> <span class="string">=</span> <span class="number">4</span> <span class="string">bytes</span> <span class="string">total</span></span><br></pre></td></tr></table></figure>
+<p>可以看到，对象大小由没有压缩的32字节变为压缩后的24字节。最终的空间占用比为(24+36)/16=3.75。</p>
+<p>对象指针压缩(<code>CompressedOops</code>)仅在<a href="https://docs.oracle.com/cd/E19620-01/805-3024/lp64-1/index.html" target="_blank" rel="noopener">LP64</a>上有效，开启过后使得64位上的空间占用和32位一样了，并且没有损失堆可访问空间（32位默认只有最大4g, 指针压缩的时候尽管偏移指针是32位，但是对象头上有3位可以作为附加偏移量，所以最终可以访问2*35=32G空间）<br>IBM上有篇<a href="https://www.ibm.com/developerworks/library/j-codetoheap/index.html" target="_blank" rel="noopener">文章</a>对这个也做了详细的介绍。</p>
+<p>所以到这里可以清晰的看到Java对象在HotSpot JVM中的<strong>内存布局情况：</strong></p>
+<ul>
+<li>12-16个字节（多种情况）的对象头。 对象头里保存有对象Hash,锁，线程，GC分代等信息</li>
+<li>对象的成员变量。 如果成员变量是指针，则是对应系统的指针的长度（32位或者64位，默认在64位开启了指针压缩后是32位）</li>
+<li>如果有对齐的需要（8的倍数），则会添加合适的空bit已满足对齐</li>
+</ul>
+<p>下面分别具体查看下这两种情况:</p>
+<ul>
+<li>对象头与成员变量</li>
+</ul>
+<p>比如我们查看<code>HashSet</code>的内存布局情况：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LayoutDemo1</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        out.println(VM.current().details());</span><br><span class="line">        out.println(ClassLayout.parseClass(java.util.HashSet<span class="class">.<span class="keyword">class</span>).<span class="title">toPrintable</span>())</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>使用JDK 1.8.0.6_161的默认参数运行，输出:</p>
+<figure class="highlight routeros"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Running 64-bit HotSpot VM.</span></span><br><span class="line"><span class="comment"># Using compressed oop with 3-bit shift.</span></span><br><span class="line"><span class="comment"># Using compressed klass with 3-bit shift.</span></span><br><span class="line"><span class="comment"># Objects are 8 bytes aligned.</span></span><br><span class="line"><span class="comment"># Field sizes by type: 4, 1, 1, 2, 2, 4, 4, 8, 8 [bytes]</span></span><br><span class="line"><span class="comment"># Array element sizes: 4, 1, 1, 2, 2, 4, 4, 8, 8 [bytes]</span></span><br><span class="line"></span><br><span class="line">java.util.HashSet object internals:</span><br><span class="line"> OFFSET  SIZE               <span class="built_in"> TYPE </span>DESCRIPTION                               VALUE</span><br><span class="line">      0    12                     (object header)                           N/A</span><br><span class="line">     12     4   java.util.HashMap HashSet.map                               N/A</span><br><span class="line">Instance size: 16 bytes</span><br><span class="line">Space losses: 0 bytes internal + 0 bytes external = 0 bytes total</span><br></pre></td></tr></table></figure>
+<ul>
+<li>补齐:<br>如下代码：</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LayoutDemo1</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        out.println(VM.current().details());</span><br><span class="line">        out.println(ClassLayout.parseClass(Demo<span class="class">.<span class="keyword">class</span>).<span class="title">toPrintable</span>())</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="class"><span class="keyword">class</span> <span class="title">Demo</span></span>&#123;</span><br><span class="line">        <span class="keyword">int</span> a;</span><br><span class="line">        <span class="keyword">boolean</span> b; <span class="comment">//boolean的长度为1，所以会补3bit</span></span><br><span class="line">        HashSet c;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>输出：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"># Running 64-bit HotSpot VM.</span><br><span class="line"># Using compressed oop with 3-bit shift.</span><br><span class="line"># Using compressed klass with 3-bit shift.</span><br><span class="line"># Objects are 8 bytes aligned.</span><br><span class="line"># Field sizes by type: 4, 1, 1, 2, 2, 4, 4, 8, 8 [bytes]</span><br><span class="line"># Array element sizes: 4, 1, 1, 2, 2, 4, 4, 8, 8 [bytes]</span><br><span class="line"></span><br><span class="line">org.doubleysoft.testpersonal.LayoutDemo1$Demo object internals:</span><br><span class="line"> OFFSET  SIZE                                       TYPE DESCRIPTION                               VALUE</span><br><span class="line">      <span class="number">0</span>    <span class="number">12</span>                                            (object header)                           N/A</span><br><span class="line">     <span class="number">12</span>     <span class="number">4</span>                                        <span class="keyword">int</span> Demo.a                                    N/A</span><br><span class="line">     <span class="number">16</span>     <span class="number">1</span>                                    <span class="keyword">boolean</span> Demo.b                                    N/A</span><br><span class="line">     <span class="number">17</span>     <span class="number">3</span>                                            (alignment/padding gap)</span><br><span class="line">     <span class="number">20</span>     <span class="number">4</span>                          java.util.HashSet Demo.c                                    N/A</span><br><span class="line">     <span class="number">24</span>     <span class="number">4</span>   org.doubleysoft.testpersonal.LayoutDemo1 Demo.<span class="keyword">this</span>$<span class="number">0</span>                               N/A</span><br><span class="line">     <span class="number">28</span>     <span class="number">4</span>                                            (loss due to the next object alignment)</span><br><span class="line">Instance size: <span class="number">32</span> bytes</span><br><span class="line">Space losses: <span class="number">3</span> bytes internal + <span class="number">4</span> bytes external = <span class="number">7</span> bytes total</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/05/31/Database/数据库事务隔离级别和传播级别详解/" rel="next" title="数据库事务隔离级别和传播级别详解">
+                <i class="fa fa-chevron-left"></i> 数据库事务隔离级别和传播级别详解
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/03/28/Java/Concurrent/Java并发基础（5）并发概念与synchronize现细节/" rel="prev" title="Java并发基础（5）并发概念与synchronized现细节">
+                Java并发基础（5）并发概念与synchronized现细节 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">cupofish@gmail.com</p>
+              <div class="site-description motion-element" itemprop="description"></div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">42</span>
+                    <span class="site-state-item-name">posts</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">23</span>
+                    <span class="site-state-item-name">categories</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">27</span>
+                    <span class="site-state-item-name">tags</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  
+                  
+                    
+                  
+                  
+                    
+                  
+                  <a href="https://github.com/anguslean" title="GitHub &rarr; https://github.com/anguslean" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+            </div>
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#编码知识"><span class="nav-number">1.</span> <span class="nav-text">编码知识</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#unicode"><span class="nav-number">1.1.</span> <span class="nav-text">unicode</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#UCS-2"><span class="nav-number">1.2.</span> <span class="nav-text">UCS-2</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#UTF-8-UTF-16"><span class="nav-number">1.3.</span> <span class="nav-text">UTF-8, UTF-16</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#UTF8"><span class="nav-number">1.3.1.</span> <span class="nav-text">UTF8</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#UTF-16"><span class="nav-number">1.3.2.</span> <span class="nav-text">UTF-16</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Java中字符串的处理"><span class="nav-number">2.</span> <span class="nav-text">Java中字符串的处理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#JVM规范"><span class="nav-number">2.1.</span> <span class="nav-text">JVM规范</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Java中String的实现"><span class="nav-number">2.2.</span> <span class="nav-text">Java中String的实现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#内存占用分析"><span class="nav-number">2.3.</span> <span class="nav-text">内存占用分析</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#char"><span class="nav-number">2.3.1.</span> <span class="nav-text">char</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#String"><span class="nav-number">2.3.2.</span> <span class="nav-text">String</span></a></li></ol></li></ol></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+    <div id="sidebar-dimmer"></div>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2021</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">cupofish@gmail.com</span>
+
+  
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.0"></script>
+
+  <script src="/js/motion.js?v=7.1.0"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/affix.js?v=7.1.0"></script>
+
+  <script src="/js/schemes/pisces.js?v=7.1.0"></script>
+
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.0"></script>
+<script src="/js/post-details.js?v=7.1.0"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.0"></script>
+
+
+  
+
+  
+
+  
+
+  
+  
+
+<script>
+  var disqus_config = function() {
+    this.page.url = "http://www.anguslean.cn/2018/06/01/Java/JVM/从String对象查看Java对象内存布局情况/";
+    this.page.identifier = "2018/06/01/Java/JVM/从String对象查看Java对象内存布局情况/";
+    this.page.title = '从String对象查看Java对象内存布局情况';
+    };
+  function loadComments() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://anguslean.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', '' + +new Date());
+    (d.head || d.body).appendChild(s);
+  }
+  
+    $(function() {
+      var offsetTop = $('#comments').offset().top - $(window).height();
+      if (offsetTop <= 0) {
+        // load directly when there's no a scrollbar
+        loadComments();
+      } else {
+        $(window).on('scroll.disqus_scroll', function() {
+          // offsetTop may changes because of manually resizing browser window or lazy loading images.
+          var offsetTop = $('#comments').offset().top - $(window).height();
+          var scrollTop = $(window).scrollTop();
+
+          // pre-load comments a bit? (margin or anything else)
+          if (offsetTop - scrollTop < 60) {
+            $(window).off('.disqus_scroll');
+            loadComments();
+          }
+        });
+      }
+    });
+  
+</script>
+
+
+
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

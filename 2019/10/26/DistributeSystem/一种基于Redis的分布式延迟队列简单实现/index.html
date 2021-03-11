@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang>
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.0" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.1.0',
+    sidebar: {"position":"left","display":"always","offset":12,"onmobile":false,"dimmer":true},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="本文介绍一种基于Redis实现的延时队列，在需求相对简单的情况下可以很好的满足需求。本项目在公司内部（百万用户下）线上环境使用中，稳定性方面还算可靠。">
+<meta name="keywords" content="Redis,分布式系统">
+<meta property="og:type" content="article">
+<meta property="og:title" content="一种基于Redis的分布式延迟队列实现">
+<meta property="og:url" content="http://www.anguslean.cn/2019/10/26/DistributeSystem/一种基于Redis的分布式延迟队列简单实现/index.html">
+<meta property="og:site_name" content="AngusLean Blog">
+<meta property="og:description" content="本文介绍一种基于Redis实现的延时队列，在需求相对简单的情况下可以很好的满足需求。本项目在公司内部（百万用户下）线上环境使用中，稳定性方面还算可靠。">
+<meta property="og:locale" content="default">
+<meta property="og:updated_time" content="2019-10-25T16:00:00.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="一种基于Redis的分布式延迟队列实现">
+<meta name="twitter:description" content="本文介绍一种基于Redis实现的延时队列，在需求相对简单的情况下可以很好的满足需求。本项目在公司内部（百万用户下）线上环境使用中，稳定性方面还算可靠。">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.anguslean.cn/2019/10/26/DistributeSystem/一种基于Redis的分布式延迟队列简单实现/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>一种基于Redis的分布式延迟队列实现 | AngusLean Blog</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="default">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">AngusLean Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>Home</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>Categories</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>Archives</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>Tags</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>About</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.anguslean.cn/2019/10/26/DistributeSystem/一种基于Redis的分布式延迟队列简单实现/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="cupofish@gmail.com">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="AngusLean Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">一种基于Redis的分布式延迟队列实现
+
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2019-10-26 00:00:00" itemprop="dateCreated datePublished" datetime="2019-10-26T00:00:00+08:00">2019-10-26</time>
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/分布式系统/" itemprop="url" rel="index"><span itemprop="name">分布式系统</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>本文介绍一种基于Redis实现的延时队列，在需求相对简单的情况下可以很好的满足需求。本项目在公司内部（百万用户下）线上环境使用中，稳定性方面还算可靠。</p>
+<a id="more"></a>
+<h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>在软件开发中，经常会遇到需要<em>“延迟”</em>处理的场景：</p>
+<ul>
+<li>用户注册一定时间没有进行下一步，则发送相关的提醒或者营销行为</li>
+<li>任务处理出错后的定时重试</li>
+</ul>
+<p>等等不一而足。 而对于这种场景在单机情况下最为常用的解决方案则是：定时任务， 定时任务也就是一个会定时执行的方法，通常采用<code>cron</code>调用或者采用线程池的定时任务来处理。大部分情况下，这种方式没有什么问题。<br>但是，私以为至少有两个方面这种解决方案是不够优雅的：</p>
+<ul>
+<li>调度本身依赖系统命令<br>任务的正确执行强依赖“运行时环境”，诚然说<code>cron</code>已经是非常成熟的技术</li>
+<li>定时任务对于自身宕机、多服务器协同存在问题<br>对于单机的定时任务，在分布式环境下必然涉及到锁。因为每台服务器处理的任务都是相同的，如何<strong>正确</strong>的调度它们是一项很考验设计的活。<br>当然，在大数据平台下还有其他很多方案，但是这些技术所引入的”复杂性“也是成倍剧增，所以在一些不是非常”重”的场合需要一种更为轻量的方式</li>
+</ul>
+<h2 id="设计"><a href="#设计" class="headerlink" title="设计"></a>设计</h2><p>现代软件系统，不论说是单机环境还是分布式环境，内存缓存都是一项不可或缺的技术，而<code>Redis</code>又在其中举足轻重。就我所经历的项目来说，可能有不依赖诸如<code>zookeeper</code>、<code>dubbo</code>、<code>Spring Cloud</code>之类的，但是，几乎没有不依赖<code>Redis</code>的。所以自然而然的考虑在<code>Redis</code>里引入延时队列。</p>
+<p>但是，<code>Redis</code>只是一种内存缓存方案 - 基于内存。它的优势劣势可以说都很明显：</p>
+<ul>
+<li>速度快， 大部分应用的瓶颈都不是在<code>Redis</code>上</li>
+<li>容量有限,且是易失性</li>
+</ul>
+<p>而对于延迟队列这种场景，对于中小型项目的需求，一般会有如下特点：</p>
+<ul>
+<li>可以容忍延迟的“误差”<br>比如说延迟30分钟执行，在30分钟零几秒执行不会有太大问题</li>
+<li><em>瞬时</em>的容量不大<br>这个瞬时指的是某个时间范围内需要延迟的数据量，Redis（或者说内存）必须可以存的下</li>
+<li>可以容忍部分丢失<br><code>Redis</code>系统本身可以采用集群等方式保证自己的可用性，大部分环境至少都会设置主备环境来保证可用性。</li>
+</ul>
+<p>所以，基于上述”简单“的原因，基于<code>Redis</code>的延迟队列还是有一些应用场景</p>
+<h3 id="基本原理"><a href="#基本原理" class="headerlink" title="基本原理"></a>基本原理</h3><p><a href="https://redislabs.com/ebook/part-2-core-concepts/chapter-6-application-components-in-redis/6-4-task-queues/6-4-2-delayed-tasks/" target="_blank" rel="noopener">Redis官方</a>有偏关于实现延迟队列的文章，基本上是本文的核心内容，背后的思想简单的说：</p>
+<ol>
+<li>采用<code>ZSET</code>来保存延迟消息，<code>ZSET</code>的<code>key</code>就是延时时间戳</li>
+<li>定时拉取上面这个<code>ZSET</code> - 通常是1秒一次（最小延迟单位）</li>
+<li>对于延迟的消息，存放到另外的队列<code>LIST</code>里</li>
+<li>多个客户端阻塞从<code>LIST</code>里获取结果</li>
+</ol>
+<p><code>python</code>代码示意如下:<br>增加延迟消息：<br><figure class="highlight livecodeserver"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">def execute_later(conn, queue, name, args, delay=<span class="number">0</span>):</span><br><span class="line">  <span class="comment"> //生成一个唯一id</span></span><br><span class="line">    identifier = str(<span class="built_in">uuid</span>.uuid4())</span><br><span class="line">   <span class="comment"> //需要延迟的消息，包括回调名等</span></span><br><span class="line">   <span class="keyword">item</span> = json.dumps([identifier, queue, name, args])</span><br><span class="line">//放到名为delayed的队列中，key就是需要执行的时间</span><br><span class="line">    <span class="keyword">if</span> delay &gt; <span class="number">0</span>:</span><br><span class="line">      conn.zadd(<span class="string">'delayed:'</span>, <span class="keyword">item</span>, <span class="built_in">time</span>.<span class="built_in">time</span>() + delay)</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">//如果延时时间小于等于<span class="number">0</span>则直接执行</span><br><span class="line">      conn.rpush(<span class="string">'queue:'</span> + queue, <span class="keyword">item</span>)</span><br><span class="line">   <span class="literal">return</span> identifier</span><br></pre></td></tr></table></figure></p>
+<p>查询到期的消息:<br><figure class="highlight livecodeserver"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">def poll_queue(conn):</span><br><span class="line">   <span class="keyword">while</span> <span class="keyword">not</span> QUIT:</span><br><span class="line">      <span class="keyword">item</span> = conn.zrange(<span class="string">'delayed:'</span>, <span class="number">0</span>, <span class="number">0</span>, withscores=True)</span><br><span class="line">     <span class="comment"> //没有获取到延迟到期的消息</span></span><br><span class="line">      <span class="keyword">if</span> <span class="keyword">not</span> <span class="keyword">item</span> <span class="keyword">or</span> <span class="keyword">item</span>[<span class="number">0</span>][<span class="number">1</span>] &gt; <span class="built_in">time</span>.<span class="built_in">time</span>():</span><br><span class="line">         <span class="built_in">time</span>.sleep(<span class="number">.01</span>)</span><br><span class="line">         continue</span><br><span class="line"></span><br><span class="line">     <span class="comment"> //查询到到期的消息，则尝试获取锁后从延迟队列里移除并且增加到待执行队列</span></span><br><span class="line">      <span class="keyword">item</span> = <span class="keyword">item</span>[<span class="number">0</span>][<span class="number">0</span>]</span><br><span class="line">      identifier, queue, <span class="function"><span class="keyword">function</span>, <span class="title">args</span> = <span class="title">json</span>.<span class="title">loads</span>(<span class="title">item</span>)</span></span><br><span class="line">      locked = acquire_lock(conn, identifier)</span><br><span class="line">      <span class="keyword">if</span> <span class="keyword">not</span> locked:</span><br><span class="line">        <span class="comment"> //获取锁失败，其他线程已经做了这件事</span></span><br><span class="line">         continue</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> conn.zrem(<span class="string">'delayed:'</span>, <span class="keyword">item</span>):</span><br><span class="line">         conn.rpush(<span class="string">'queue:'</span> + queue, <span class="keyword">item</span>)</span><br><span class="line">     <span class="comment"> //释放锁</span></span><br><span class="line">      release_lock(conn, identifier, locked)</span><br></pre></td></tr></table></figure></p>
+<h3 id="实现考虑"><a href="#实现考虑" class="headerlink" title="实现考虑"></a>实现考虑</h3><p>上述代码给出了一个”最简“的思路，然后我们把它放在分布式环境下仔细思考，发现有如下问题需要考量：</p>
+<ol>
+<li>在保存消息到延迟队列时，是否需要做系统级别的隔离？ 也就是不同业务线的消息可以分开保存</li>
+<li>从阻塞队列里获取消息然后删除，这里用到了锁，能否优化？</li>
+<li>从阻塞队列里获取消息的逻辑，能不能单线程执行？<br>这里如果使用单线程执行，如何保证可用性？即自身挂掉如果自动切换到其他节点，其实也就是一个”保活“的概念</li>
+<li>从待执行任务队列里取数据后的回调如何处理？</li>
+</ol>
+<p>从某种角度上考虑上述问题，其实这就是一个典型的”生产者-消费者“问题。多生产者、多消费者、可能还需要协调。 那么这里就可以在当前技术栈下做出合适的选择：</p>
+<ol>
+<li>本身是否有基于<code>Redis</code>的锁实现？ 有可以直接采用锁而不是”保活“方案</li>
+<li>本身是否已有分布式协调组件，能够较为简单的实现<em>选主</em>或者说保活的逻辑，如果有则可以采用单个任务来拉取到期任务，无锁可能更为有效</li>
+<li>合理的设计延迟队列消息之间的”隔离性“， 不同类型的延迟消息可能需要不同的待处理延迟队列已便于分布式拉取</li>
+</ol>
+<p>对于这些问题，考虑到所处项目的实际需求，我毫无疑问的选择了”最为简单“的几种=_=.<br><a href="https://github.com/AngusLean/delay-queue4j" target="_blank" rel="noopener"><code>github</code>地址</a></p>
+<p>简单的demo:<br><figure class="highlight livescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">@Test</span><br><span class="line">public <span class="literal">void</span> addData1() throws InterruptedException &#123;</span><br><span class="line">    delayMsgConfig.setCorePoolSize(<span class="number">10</span>);</span><br><span class="line">    delayMsgConfig.setMaximumPoolSize(<span class="number">20</span>);</span><br><span class="line">    <span class="regexp">//开始拉取延迟消息，这里还没有注册回调所以不会有任何消息会获取</span></span><br><span class="line"><span class="regexp">    delayMsgConfig.begin();</span></span><br><span class="line"><span class="regexp">    String system = "DELAY-ATEST1";</span></span><br><span class="line"><span class="regexp">    CountDownLatch latch = new CountDownLatch(1);</span></span><br><span class="line"><span class="regexp">//</span>注册延迟回调接口，只关心key为DELAY-ATEST1</span><br><span class="line">    delayMsgConfig.addDelayCallBack<span class="function"><span class="params">(system, (uuid, message) -&gt; &#123;</span></span></span><br><span class="line"><span class="function"><span class="params">        System.out.println(<span class="string">"收到消息"</span> + uuid + <span class="string">", "</span> + message);</span></span></span><br><span class="line"><span class="function"><span class="params">        latch.countDown();</span></span></span><br><span class="line"><span class="function"><span class="params">    &#125;)</span>;</span></span><br><span class="line"><span class="function">//添加延迟消息</span></span><br><span class="line"><span class="function">    <span class="title">delayMsgConfig</span>.<span class="title">addDelayMessage</span><span class="params">(DelayedInfoDTO.builder()</span></span></span><br><span class="line"><span class="function"><span class="params">            .delayTime(Math.abs(<span class="keyword">new</span> Random().nextLong()) % <span class="number">20</span>)</span></span></span><br><span class="line"><span class="function"><span class="params">            .system(system)</span></span></span><br><span class="line"><span class="function"><span class="params">            .message(system + String.format(<span class="string">"%2d"</span>, <span class="keyword">new</span> Random().nextInt(<span class="number">100</span>)))</span></span></span><br><span class="line"><span class="function"><span class="params">            .uuid(UUID.randomUUID().toString())</span></span></span><br><span class="line"><span class="function"><span class="params">            .build())</span>;</span></span><br><span class="line"><span class="function">    <span class="title">latch</span>.<span class="title">await</span><span class="params">(<span class="number">100</span>, TimeUnit.SECONDS)</span>;</span></span><br><span class="line"><span class="function">    <span class="title">System</span>.<span class="title">out</span>.<span class="title">println</span><span class="params">(<span class="string">"======&gt;"</span>)</span>;</span></span><br><span class="line"><span class="function">&#125;</span></span><br></pre></td></tr></table></figure></p>
+<p>上述代码的注册延迟消息回调函数和生成延迟消息可以分开部署，已便于最大化性能。同时，对于执行回调函数也提供了线程池的手动配置已达到最合理的资源利用率。</p>
+<h3 id="问题和改进"><a href="#问题和改进" class="headerlink" title="问题和改进"></a>问题和改进</h3><p>首先，上面项目暂时没有很好的解决”资源隔离维度“的问题，还需要更加仔细的设计<br>其次，对于分布式环境最好不需要加锁，这里还待改进<br>最后就是， <code>Redis</code>本身的特性决定了这种实现的量级不会太大。而消息队列才应该是这种需求的”最正确“解法，<strong>消息TTL+死信队列</strong>毫无疑问可以实现延迟的效果，而消息队列本身的解耦设计使得消费者和生产者变得更加灵活。 我觉得唯一的问题就是，团队里的成员能否<em>”Hold”住消息队列</em>，是否“知其所以然”， 因为目前通用的几个消息队列其实都是挺“重”且需要理解的点不少。<br>这是另外一个关于架构选型的问题了。</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Redis/" rel="tag"># Redis</a>
+          
+            <a href="/tags/分布式系统/" rel="tag"># 分布式系统</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/08/06/DistributeSystem/Zab算法与Paxos算法/" rel="next" title="Zab算法与Paxos算法异同">
+                <i class="fa fa-chevron-left"></i> Zab算法与Paxos算法异同
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/12/16/Tool/Redis内存优化/" rel="prev" title="Redis内存优化(译)">
+                Redis内存优化(译) <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">cupofish@gmail.com</p>
+              <div class="site-description motion-element" itemprop="description"></div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">42</span>
+                    <span class="site-state-item-name">posts</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">23</span>
+                    <span class="site-state-item-name">categories</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">27</span>
+                    <span class="site-state-item-name">tags</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  
+                  
+                    
+                  
+                  
+                    
+                  
+                  <a href="https://github.com/anguslean" title="GitHub &rarr; https://github.com/anguslean" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+            </div>
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#背景"><span class="nav-number">1.</span> <span class="nav-text">背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#设计"><span class="nav-number">2.</span> <span class="nav-text">设计</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#基本原理"><span class="nav-number">2.1.</span> <span class="nav-text">基本原理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#实现考虑"><span class="nav-number">2.2.</span> <span class="nav-text">实现考虑</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#问题和改进"><span class="nav-number">2.3.</span> <span class="nav-text">问题和改进</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+    <div id="sidebar-dimmer"></div>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2021</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">cupofish@gmail.com</span>
+
+  
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.0"></script>
+
+  <script src="/js/motion.js?v=7.1.0"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/affix.js?v=7.1.0"></script>
+
+  <script src="/js/schemes/pisces.js?v=7.1.0"></script>
+
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.0"></script>
+<script src="/js/post-details.js?v=7.1.0"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.0"></script>
+
+
+  
+
+  
+
+  
+
+  
+  
+
+<script>
+  var disqus_config = function() {
+    this.page.url = "http://www.anguslean.cn/2019/10/26/DistributeSystem/一种基于Redis的分布式延迟队列简单实现/";
+    this.page.identifier = "2019/10/26/DistributeSystem/一种基于Redis的分布式延迟队列简单实现/";
+    this.page.title = '一种基于Redis的分布式延迟队列实现';
+    };
+  function loadComments() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://anguslean.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', '' + +new Date());
+    (d.head || d.body).appendChild(s);
+  }
+  
+    $(function() {
+      var offsetTop = $('#comments').offset().top - $(window).height();
+      if (offsetTop <= 0) {
+        // load directly when there's no a scrollbar
+        loadComments();
+      } else {
+        $(window).on('scroll.disqus_scroll', function() {
+          // offsetTop may changes because of manually resizing browser window or lazy loading images.
+          var offsetTop = $('#comments').offset().top - $(window).height();
+          var scrollTop = $(window).scrollTop();
+
+          // pre-load comments a bit? (margin or anything else)
+          if (offsetTop - scrollTop < 60) {
+            $(window).off('.disqus_scroll');
+            loadComments();
+          }
+        });
+      }
+    });
+  
+</script>
+
+
+
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

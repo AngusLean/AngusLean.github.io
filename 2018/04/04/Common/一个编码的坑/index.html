@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang>
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.0" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.1.0',
+    sidebar: {"position":"left","display":"always","offset":12,"onmobile":false,"dimmer":true},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="最近在项目上遇到一个编码相关的问题， 弄清楚过后觉得这个具备一定的典型意义，所以在这里记上。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="丛一次编码相关的坑说起">
+<meta property="og:url" content="http://www.anguslean.cn/2018/04/04/Common/一个编码的坑/index.html">
+<meta property="og:site_name" content="AngusLean Blog">
+<meta property="og:description" content="最近在项目上遇到一个编码相关的问题， 弄清楚过后觉得这个具备一定的典型意义，所以在这里记上。">
+<meta property="og:locale" content="default">
+<meta property="og:updated_time" content="2018-04-03T16:00:00.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="丛一次编码相关的坑说起">
+<meta name="twitter:description" content="最近在项目上遇到一个编码相关的问题， 弄清楚过后觉得这个具备一定的典型意义，所以在这里记上。">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.anguslean.cn/2018/04/04/Common/一个编码的坑/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>丛一次编码相关的坑说起 | AngusLean Blog</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="default">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">AngusLean Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>Home</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>Categories</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>Archives</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>Tags</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>About</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.anguslean.cn/2018/04/04/Common/一个编码的坑/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="cupofish@gmail.com">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="AngusLean Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">丛一次编码相关的坑说起
+
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2018-04-04 00:00:00" itemprop="dateCreated datePublished" datetime="2018-04-04T00:00:00+08:00">2018-04-04</time>
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/拧螺丝/" itemprop="url" rel="index"><span itemprop="name">拧螺丝</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>最近在项目上遇到一个编码相关的问题， 弄清楚过后觉得这个具备一定的典型意义，所以在这里记上。<br><a id="more"></a></p>
+<p>出问题的代码大概是这样的：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> *jsonObject为一个格式为 &#123;sign:xxx, tradeResponse: &#123;&#125;&#125; 的JSON字符串</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">String sign = jsonObject.getString(<span class="string">"sign"</span>);</span><br><span class="line">JSONObject tradeResponse = jsonObject.getJSONObject(<span class="string">"tradeResponse"</span>);</span><br><span class="line"></span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="comment">//获取到json</span></span><br><span class="line">    String jsonStr = tradeResponse.toString();</span><br><span class="line">    <span class="comment">//调用系统属性配置获取密钥</span></span><br><span class="line">    <span class="keyword">return</span> RSAUtils.verify(jsonStr.getBytes(), properties.getPubKey(), sign);</span><br></pre></td></tr></table></figure>
+<p>而加密的代码类似这样：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//真正的响应内容</span></span><br><span class="line">Map tradeResponse = <span class="keyword">new</span> HashMap()&#123;&#123;</span><br><span class="line">    put(<span class="string">"success"</span>, <span class="keyword">true</span>);</span><br><span class="line">    put(<span class="string">"code"</span>, <span class="string">"0"</span>);</span><br><span class="line">&#125;&#125;;</span><br><span class="line">String json = JSON.toJSONString(tradeResponse);</span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="comment">//签名</span></span><br><span class="line">    String sign = RSAUtils.sign(json.getBytes(), privateKey);</span><br><span class="line">    Map result = <span class="keyword">new</span> HashMap()&#123;&#123;</span><br><span class="line">        put(<span class="string">"tradeResponse"</span>, tradeResponse);</span><br><span class="line">        put(<span class="string">"sign"</span>, sign);</span><br><span class="line">    &#125;&#125;;</span><br><span class="line">    String rs = JSON.toJSONString(result);</span><br><span class="line">    System.out.println(rs);</span><br><span class="line">&#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">    e.printStackTrace();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这是一段经过简化的对HTTP请求进行加密的方法，应该说很多应用都会有。实际实现思路相差不大。 这段代码看起来没有什么问题，开发的时候在本地也测试通过了，但是最终却是在不同的平台/IDE/环境下上面的验证签名方法结果不一样，有成功有失败。</p>
+<p>于是我在本地测试， 把上面的代码从业务里面拖出来放到单元测试里，然后通过debug拿到签名过后的<code>jsonObject</code>，放到单元测试里用几乎完全一样的方法测试， 结果是验证可以通过。 </p>
+<p>然后我又从以下几个方面仔细排查了下：</p>
+<ul>
+<li>客户端和服务器加解密使用的库（RSAUtil）</li>
+<li>校验公钥/私钥对</li>
+<li>在服务器端解密客户端收到的json字符串</li>
+</ul>
+<p>最终结果毫无疑问都是没有问题的，看来最终的问题还是在调用加解密这部分。 于是，断点打到<code>RSAUtils.verify</code>内部，一一和本地单元测试的对比，果然发现了问题： <code>byte[]</code> 数组的值不一样。</p>
+<p>这里有两个问题:</p>
+<ul>
+<li>对于相同的字符串，在应用中与在单元测试（同一个IDE同时跑起来）中获取到的<code>byte[]</code>竟然不一样。</li>
+<li>开发环境可以通过验证，到了测试环境又不一致</li>
+</ul>
+<p>其实到了这里心里就已经基本有数了，问题的根源在于服务器在对响应内容进行加密的时候，获取字符串的<code>byte[]</code>数组没有指定编码，使用了系统的默认编码； 客户端在对收到的响应字符串进行解密时， 也没有对字符串的<code>byte[]</code>进行编码，使用了系统的默认编码。 而这种依赖外部环境的代码出问题也就毫无疑问了，解决的思路也很简单，加解密都使用相同的<code>utf-8</code>编码。</p>
+<p>这个问题让我想到了2点：</p>
+<ul>
+<li><p>在前面的<code>12factor - spring cloud推荐的一个编程方法论简述</code>这篇翻译里提到过的<em>依赖管理</em>。 一个设计良好、编码规范的app应该是完全独立于平台的，不能依赖任意外部环境的设置，比如编码，比如某个环境环境变量等等。在设计、编码、编码检查的时候应该尤其注意这种。上面的<code>getBytes</code>方法就是一个典型的依赖了外部环境，并且还是隐式依赖。 类似的，如果代码里某些方法依赖了文件系统<code>utfs/ext3</code>之类的，也很可能在某个时间点爆发BUG，并且难以排查。 所以在编码时需要尤其注意这种。</p>
+</li>
+<li><p>对于使用的工具、环境的整体概念<br><em>工欲善其事必先利其器</em>，开发总会用到各种各样的工具或者类库。Java开发最好用的IDE毫无疑问就是<a href="https://www.jetbrains.com/idea/" target="_blank" rel="noopener">idea</a>，但是有多少人清楚IDEA里面的配置及其对工程的影响呢？<br>往简单了说，IDEA可以设置的编码包括全局编码、项目编码以及BOM相关的； 还可以设置项目的默认JDK版本、字节码版本、编码等等，往复杂了说，启动一个项目可以配置的各个东西哪些可以在应用里做哪些可以放到外部等等。而项目通常会使用<code>maven, gradle</code>之类的构建工具，那么在IDEA里面运行某个项目时，字节码版本是由哪个决定的？ 出问题了是否需要离开IDE单独测试项目情况？ 如果某个开发没有更改IDE的编码而编辑了文件并且提交会造成什么后果？</p>
+</li>
+</ul>
+<p>这些问题都是很简单的问题，但是我想指出的是 背后 每个人都需要逐步建立起这种思想：<br><strong>我对我使用到的东西大概清楚每个部分都是干啥的，起了什么作用,以及不同部分之间的相互影响范围</strong><br>这个当然不限于开发/构建工具，比如对于maven/gradle在ide里的操作以及单独在命令行的操作； 比如tomcat\war\netty\servlet\jsp\angular\http\dubbo这些在一个应用里所属的层级； 比如前端\后端\cdn\nginx。不一定能够一清二楚每个东西的原理，但是在一个整体应用中他们每一个所属的位置及作用应该要清清楚楚。</p>
+<p>拧螺丝谁都会拧，但是只会拧一个位置的螺丝和掌握了所有位置的螺丝还是有点区别的。共勉~ </p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/03/28/Java/Concurrent/Java并发基础（1.1）从双重检查锁模式说起/" rel="next" title="Java并发基础（1.1）从双重检查锁模式说起">
+                <i class="fa fa-chevron-left"></i> Java并发基础（1.1）从双重检查锁模式说起
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/05/04/Engineering/重构浅谈/" rel="prev" title="重构浅谈">
+                重构浅谈 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">cupofish@gmail.com</p>
+              <div class="site-description motion-element" itemprop="description"></div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">42</span>
+                    <span class="site-state-item-name">posts</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">23</span>
+                    <span class="site-state-item-name">categories</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">27</span>
+                    <span class="site-state-item-name">tags</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  
+                  
+                    
+                  
+                  
+                    
+                  
+                  <a href="https://github.com/anguslean" title="GitHub &rarr; https://github.com/anguslean" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+            </div>
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+
+      
+
+    </div>
+  </aside>
+  
+    <div id="sidebar-dimmer"></div>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2021</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">cupofish@gmail.com</span>
+
+  
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.0"></script>
+
+  <script src="/js/motion.js?v=7.1.0"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/affix.js?v=7.1.0"></script>
+
+  <script src="/js/schemes/pisces.js?v=7.1.0"></script>
+
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.0"></script>
+<script src="/js/post-details.js?v=7.1.0"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.0"></script>
+
+
+  
+
+  
+
+  
+
+  
+  
+
+<script>
+  var disqus_config = function() {
+    this.page.url = "http://www.anguslean.cn/2018/04/04/Common/一个编码的坑/";
+    this.page.identifier = "2018/04/04/Common/一个编码的坑/";
+    this.page.title = '丛一次编码相关的坑说起';
+    };
+  function loadComments() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://anguslean.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', '' + +new Date());
+    (d.head || d.body).appendChild(s);
+  }
+  
+    $(function() {
+      var offsetTop = $('#comments').offset().top - $(window).height();
+      if (offsetTop <= 0) {
+        // load directly when there's no a scrollbar
+        loadComments();
+      } else {
+        $(window).on('scroll.disqus_scroll', function() {
+          // offsetTop may changes because of manually resizing browser window or lazy loading images.
+          var offsetTop = $('#comments').offset().top - $(window).height();
+          var scrollTop = $(window).scrollTop();
+
+          // pre-load comments a bit? (margin or anything else)
+          if (offsetTop - scrollTop < 60) {
+            $(window).off('.disqus_scroll');
+            loadComments();
+          }
+        });
+      }
+    });
+  
+</script>
+
+
+
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

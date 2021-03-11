@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang>
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.0" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.1.0',
+    sidebar: {"position":"left","display":"always","offset":12,"onmobile":false,"dimmer":true},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="缓存在现在的软件系统毫无疑问是非常重要的一环，缓存对于系统的性能瓶颈、用户感知等都有着巨大影响。本文将记录缓存设计的几种常见模式，并且延伸到一些其他组件上。">
+<meta name="keywords" content="分布式系统,缓存">
+<meta property="og:type" content="article">
+<meta property="og:title" content="缓存的几种模式">
+<meta property="og:url" content="http://www.anguslean.cn/2019/06/06/DistributeSystem/缓存的几种模式简述/index.html">
+<meta property="og:site_name" content="AngusLean Blog">
+<meta property="og:description" content="缓存在现在的软件系统毫无疑问是非常重要的一环，缓存对于系统的性能瓶颈、用户感知等都有着巨大影响。本文将记录缓存设计的几种常见模式，并且延伸到一些其他组件上。">
+<meta property="og:locale" content="default">
+<meta property="og:image" content="https://gitee.com/angus_lean/markDownPic/raw/master/2019/09/cache-aside-diagram.png">
+<meta property="og:image" content="https://gitee.com/angus_lean/markDownPic/raw/master/2019/09/writebehindcache.png">
+<meta property="og:updated_time" content="2019-06-05T16:00:00.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="缓存的几种模式">
+<meta name="twitter:description" content="缓存在现在的软件系统毫无疑问是非常重要的一环，缓存对于系统的性能瓶颈、用户感知等都有着巨大影响。本文将记录缓存设计的几种常见模式，并且延伸到一些其他组件上。">
+<meta name="twitter:image" content="https://gitee.com/angus_lean/markDownPic/raw/master/2019/09/cache-aside-diagram.png">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.anguslean.cn/2019/06/06/DistributeSystem/缓存的几种模式简述/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>缓存的几种模式 | AngusLean Blog</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="default">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">AngusLean Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>Home</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>Categories</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>Archives</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>Tags</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>About</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.anguslean.cn/2019/06/06/DistributeSystem/缓存的几种模式简述/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="cupofish@gmail.com">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="AngusLean Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">缓存的几种模式
+
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2019-06-06 00:00:00" itemprop="dateCreated datePublished" datetime="2019-06-06T00:00:00+08:00">2019-06-06</time>
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/分布式系统/" itemprop="url" rel="index"><span itemprop="name">分布式系统</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/分布式系统/缓存/" itemprop="url" rel="index"><span itemprop="name">缓存</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>缓存在现在的软件系统毫无疑问是非常重要的一环，缓存对于系统的性能瓶颈、用户感知<br>等都有着巨大影响。本文将记录缓存设计的几种常见模式，并且延伸到一些其他组件上。<br><a id="more"></a></p>
+<p><strong>缓存的几种模式</strong><br>应用程序使用缓存来改善对某些信息的重复访问（避免访问持久层的数据库，从而对数据库造成过大压力）,但是，保持缓存的数据与持久层数据的一致性是一个微妙的问题，应用程序应该实现某种确保缓存尽量是<br>最新的策略，也能检测和处理缓存中数据过时的问题。<br>通常，有如下几种模式：</p>
+<h3 id="Cache-Aside模式"><a href="#Cache-Aside模式" class="headerlink" title="Cache Aside模式"></a><code>Cache Aside</code>模式</h3><p>大部分后端系统使用的都是这种模式， 它的逻辑如下：</p>
+<ul>
+<li><em>失效</em> : 应用先从缓存取数据，如果没有取到则到更后面的持久层取-通常是数据库，<br>成功后放到缓存中</li>
+<li><em>命中</em> : 应用直接从缓存中获取到需要的数据</li>
+<li><em>更新</em> : 先存储数据到持久化层中，再让缓存<em>失效</em></li>
+</ul>
+<p><img src="https://gitee.com/angus_lean/markDownPic/raw/master/2019/09/cache-aside-diagram.png" alt="cache aside"></p>
+<p>上面说道，对于更新是保存到数据库后让缓存<strong>失效</strong>,这是为什么呢?</p>
+<blockquote>
+<p>当两个并发线程同时更新相同的数据库项时，”每次”都更新了缓存，这里会有两个问题：</p>
+<ol>
+<li>在两次更新的中间时候，用户在缓存中读取的数据“并不一定”是数据库中的值（因为实际上数据库中被并发的修改）,<br>这里实际上已经是一个“脏”数据</li>
+<li>如果并发写比较多的时候，这里每次都涉及到更新，但是这个缓存到底会不会被频繁访问？ 如果没有多次更新<br>就是浪费，而如果采用失效缓存，缓存也就是重新计算一次而已。<br>相当于说，<strong>失效</strong>缓存-其实就是一个<code>Lazy</code>的思想，延迟加载数据已减轻系统压力</li>
+</ol>
+</blockquote>
+<p>同时，上述模式是否就真的没有问题？考虑这种情况：</p>
+<ul>
+<li>A和B两个线程， A读数据B写数据，同时发生</li>
+<li>A从缓存中没有读到数据，从数据库读取</li>
+<li>B写数据到库中，同时让缓存失效</li>
+<li>A把从数据库中读取到的老数据放入缓存中</li>
+<li>缓存中是老数据，数据库中是新数据。出现缓存不一致</li>
+</ul>
+<p>这种情况从逻辑上来说是完全可能发生的，<code>Quara</code>中有个[问题]<br>(<a href="https://www.quora.com/Why-does-Facebook-use-delete-to-remove-the-key-value-pair-in-Memcached-instead-of-updating-the-Memcached-during-write-request-to-the-backend" target="_blank" rel="noopener">https://www.quora.com/Why-does-Facebook-use-delete-to-remove-the-key-value-pair-in-Memcached-instead-of-updating-the-Memcached-during-write-request-to-the-backend</a>)<br>对这个也做了解答。<strong>如果要保证严格的一致性，要么采用顺序性的提交要么采用<code>Paxos</code>或者<code>Raft</code>之类的一致性算法</strong>，但很明显要么是性能影响过大要么是实现过于复杂。<br>而上面提到的<code>corner case</code>,其实发生几率应该是非常小的，因为查询后没有放到缓存且等到更新数据库并更新缓存过后才进去，时间节点上不大可能会出现, 因为更新总是比查询慢很多。</p>
+<h3 id="Read-Through模式"><a href="#Read-Through模式" class="headerlink" title="Read Through模式"></a><code>Read Through</code>模式</h3><p><code>read through</code>其实就是在查询操作中自动更新缓存， 当缓存失效的时候，缓存系统自身从持久化系统（数据库）中查询数据，把该数据更新到缓存中然后返回前端。 整个过程对于缓存的调用方来说完全透明，从调用方的角度来看是最为简单的。 这种模式的原理非常简单，后端服务最为经典的案例有几个：</p>
+<h4 id="My-Batis"><a href="#My-Batis" class="headerlink" title="My Batis"></a><code>My Batis</code></h4><p><code>mybatis</code>默认的一级缓存隐藏在我们使用<code>SqlSession</code>后面，对于每一个<code>SqlSession</code>实例都自动缓存查询。但是对于<code>mybatis</code>的使用者来说我们并不需要关心缓存的键、过期时间、更新策略等。所以是一种典型的<code>read through</code>模式实现。我的这篇<a href="https://anguslean.cn/2017/12/08/Java/Framework/MyBatis/MyBatis%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%EF%BC%885%EF%BC%89-%20%E7%BC%93%E5%AD%98%E7%9A%84%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86(1" target="_blank" rel="noopener">文章</a>-%E4%B8%80%E7%BA%A7%E7%BC%93%E5%AD%98/)对这个有所描述</p>
+<h4 id="MySQL的存储引擎"><a href="#MySQL的存储引擎" class="headerlink" title="MySQL的存储引擎"></a><code>MySQL</code>的存储引擎</h4><p>对于数据库系统，一个很基本的问题是：</p>
+<ul>
+<li><strong>是否所有的查询都会走到磁盘上？</strong></li>
+</ul>
+<p>这里的查询分为两类:</p>
+<ul>
+<li>实际查询SQL</li>
+<li>存储引擎内部通过索引查找数据的“索引”定位</li>
+</ul>
+<p>这里是仅仅列出了<code>MySQL</code>,实际上所有的数据库都会有这种缓存存在。</p>
+<h4 id="CPU高速缓存"><a href="#CPU高速缓存" class="headerlink" title="CPU高速缓存"></a><code>CPU高速缓存</code></h4><p>对于现代CPU的几级缓存，比如L1/L2/L3, 它们使用的模式就是<code>read through</code>, 低级的缓存对各自CPU核心负责，而最上层一级缓存则对整个CPU起到缓存作用 - 缓存来自主存的数据。 因为对于CPU来说，内存还是过于缓慢，所以为了处理CPU和内存之间速度上的差异在现代CPU上引入了这种缓存结构， 当然，他们也是易失性缓存</p>
+<h3 id="Write-Through模式"><a href="#Write-Through模式" class="headerlink" title="Write Through模式"></a><code>Write Through</code>模式</h3><p><code>write through</code>模式同<code>read through</code>模式相仿， 只不过是在数据更新的时候如果没有命中缓存才更新数据否则就更新缓存，然后再由缓存自身更新到实际持久层（同步）<br>这种模式有如下的特点：</p>
+<ul>
+<li>所有数据都被缓存在内存中，所以查询效率较高</li>
+<li>持久化的数据不能太大，因为内存是有限的</li>
+<li>写数据时，缓存把数据持久化的过程需要是同步的才能保证可靠性</li>
+</ul>
+<h3 id="Write-Behind-Caching模式"><a href="#Write-Behind-Caching模式" class="headerlink" title="Write Behind Caching模式"></a><code>Write Behind Caching</code>模式</h3><p>也叫<code>Write Back</code>模式，就是上面的<code>Write Through</code>模式的异步版本：写数据到持久层的操作由缓存层自己异步的处理，根据某种策略异步持久化。那么，这种方式的特点就非常明显：</p>
+<ul>
+<li>写数据(磁盘IO)非常快</li>
+<li>缓存层可以对多次操作进行合并，进而可以较大的提高性能</li>
+<li>数据真正被持久化会有一定的延时，对于异常情况就可能丢失数据</li>
+</ul>
+<p>在上述中可以看到优缺点都非常明显，数据不是强一致性的而且可能会丢失（对于某些已数据为唯一目的的系统比如数据库系统就是无法接受的），但是操作速度可以非常快。 所以说在软件工程上不存在完全完美的方案，大部分时候都是一个取舍的过程(<code>trade off</code>)<br>另外，这种模式还有问题:</p>
+<ul>
+<li>通过什么方式判断缓存是否存在（比如对于文件系统）</li>
+<li>持久化的时机（定时或者定量？）</li>
+</ul>
+<p><img src="https://gitee.com/angus_lean/markDownPic/raw/master/2019/09/writebehindcache.png" alt="cache aside"></p>
+<h3 id="缓存系统设计的几个问题"><a href="#缓存系统设计的几个问题" class="headerlink" title="缓存系统设计的几个问题"></a>缓存系统设计的几个问题</h3><p>在分布式系统中，毫无疑问我们需要一个集中式缓存集群来做统一的缓存处理，那么，对于这个缓存系统来说有几个问题小于要注意：</p>
+<ul>
+<li>内存是否足够<br>如果内存不足以存下所有数据，那么需要对缓存的数据进行分片。同时，缓存系统的网络也需要足够好</li>
+<li>缓存持久化策略<br>是基本不管持久化作为一个存粹的缓存层还是要提供最大程度的持久化？</li>
+<li>缓存的过期策略<br>缓存数据存放多久？ 放太久或者放太短都系统来说都是坏消息，最合理的可能是交给应用自行设置。</li>
+<li>缓存的淘汰策略<br>当内存不够需要清除缓存时，是按照最近最少使用还是大小或者是其他方式？</li>
+<li>缓存系统的可用性<br>如果缓存系统挂掉且系统突遇高峰流量-也就是俗称的缓存雪崩如何处理？如何来监控缓存系统的示例是否正常使用以及如果挂掉如果处置？</li>
+</ul>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/分布式系统/" rel="tag"># 分布式系统</a>
+          
+            <a href="/tags/缓存/" rel="tag"># 缓存</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/05/11/Tool/Redis单实例锁和Redlock算法/" rel="next" title="Redis单实例锁和Redlock分布式锁算法">
+                <i class="fa fa-chevron-left"></i> Redis单实例锁和Redlock分布式锁算法
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/06/15/Common/线程模型/" rel="prev" title="线程模型变迁－Java和Go语言的选择">
+                线程模型变迁－Java和Go语言的选择 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">cupofish@gmail.com</p>
+              <div class="site-description motion-element" itemprop="description"></div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">42</span>
+                    <span class="site-state-item-name">posts</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">23</span>
+                    <span class="site-state-item-name">categories</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">27</span>
+                    <span class="site-state-item-name">tags</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  
+                  
+                    
+                  
+                  
+                    
+                  
+                  <a href="https://github.com/anguslean" title="GitHub &rarr; https://github.com/anguslean" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+            </div>
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#Cache-Aside模式"><span class="nav-number">1.</span> <span class="nav-text">Cache Aside模式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Read-Through模式"><span class="nav-number">2.</span> <span class="nav-text">Read Through模式</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#My-Batis"><span class="nav-number">2.1.</span> <span class="nav-text">My Batis</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#MySQL的存储引擎"><span class="nav-number">2.2.</span> <span class="nav-text">MySQL的存储引擎</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#CPU高速缓存"><span class="nav-number">2.3.</span> <span class="nav-text">CPU高速缓存</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Write-Through模式"><span class="nav-number">3.</span> <span class="nav-text">Write Through模式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Write-Behind-Caching模式"><span class="nav-number">4.</span> <span class="nav-text">Write Behind Caching模式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#缓存系统设计的几个问题"><span class="nav-number">5.</span> <span class="nav-text">缓存系统设计的几个问题</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+    <div id="sidebar-dimmer"></div>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2021</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">cupofish@gmail.com</span>
+
+  
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.0"></script>
+
+  <script src="/js/motion.js?v=7.1.0"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/affix.js?v=7.1.0"></script>
+
+  <script src="/js/schemes/pisces.js?v=7.1.0"></script>
+
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.0"></script>
+<script src="/js/post-details.js?v=7.1.0"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.0"></script>
+
+
+  
+
+  
+
+  
+
+  
+  
+
+<script>
+  var disqus_config = function() {
+    this.page.url = "http://www.anguslean.cn/2019/06/06/DistributeSystem/缓存的几种模式简述/";
+    this.page.identifier = "2019/06/06/DistributeSystem/缓存的几种模式简述/";
+    this.page.title = '缓存的几种模式';
+    };
+  function loadComments() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://anguslean.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', '' + +new Date());
+    (d.head || d.body).appendChild(s);
+  }
+  
+    $(function() {
+      var offsetTop = $('#comments').offset().top - $(window).height();
+      if (offsetTop <= 0) {
+        // load directly when there's no a scrollbar
+        loadComments();
+      } else {
+        $(window).on('scroll.disqus_scroll', function() {
+          // offsetTop may changes because of manually resizing browser window or lazy loading images.
+          var offsetTop = $('#comments').offset().top - $(window).height();
+          var scrollTop = $(window).scrollTop();
+
+          // pre-load comments a bit? (margin or anything else)
+          if (offsetTop - scrollTop < 60) {
+            $(window).off('.disqus_scroll');
+            loadComments();
+          }
+        });
+      }
+    });
+  
+</script>
+
+
+
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

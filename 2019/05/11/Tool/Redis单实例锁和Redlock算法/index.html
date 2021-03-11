@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang>
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.0" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.1.0',
+    sidebar: {"position":"left","display":"always","offset":12,"onmobile":false,"dimmer":true},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="在实际使用中，Redis除了作为一个KEY-VALUE的内存数据库之外，还常常被用作分布式环境的锁服务。本文对Redis的锁从单机和分布式环境上做一个概述，关注实现原理和优缺点。">
+<meta name="keywords" content="Redis,分布式缓存">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis单实例锁和Redlock分布式锁算法">
+<meta property="og:url" content="http://www.anguslean.cn/2019/05/11/Tool/Redis单实例锁和Redlock算法/index.html">
+<meta property="og:site_name" content="AngusLean Blog">
+<meta property="og:description" content="在实际使用中，Redis除了作为一个KEY-VALUE的内存数据库之外，还常常被用作分布式环境的锁服务。本文对Redis的锁从单机和分布式环境上做一个概述，关注实现原理和优缺点。">
+<meta property="og:locale" content="default">
+<meta property="og:image" content="https://gitee.com/angus_lean/markDownPic/raw/master/2019/04/cuccency-fence.png">
+<meta property="og:updated_time" content="2019-05-10T16:00:00.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Redis单实例锁和Redlock分布式锁算法">
+<meta name="twitter:description" content="在实际使用中，Redis除了作为一个KEY-VALUE的内存数据库之外，还常常被用作分布式环境的锁服务。本文对Redis的锁从单机和分布式环境上做一个概述，关注实现原理和优缺点。">
+<meta name="twitter:image" content="https://gitee.com/angus_lean/markDownPic/raw/master/2019/04/cuccency-fence.png">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.anguslean.cn/2019/05/11/Tool/Redis单实例锁和Redlock算法/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Redis单实例锁和Redlock分布式锁算法 | AngusLean Blog</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="default">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">AngusLean Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>Home</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>Categories</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>Archives</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>Tags</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>About</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.anguslean.cn/2019/05/11/Tool/Redis单实例锁和Redlock算法/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="cupofish@gmail.com">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="AngusLean Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">Redis单实例锁和Redlock分布式锁算法
+
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2019-05-11 00:00:00" itemprop="dateCreated datePublished" datetime="2019-05-11T00:00:00+08:00">2019-05-11</time>
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Tool/" itemprop="url" rel="index"><span itemprop="name">Tool</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Tool/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>在实际使用中，Redis除了作为一个KEY-VALUE的内存数据库之外，还常常被用作分布式环境的锁服务。本文对Redis的锁从单机和分布式环境上做一个概述，关注实现原理和优缺点。</p>
+<a id="more"></a>
+<h2 id="单实例实现"><a href="#单实例实现" class="headerlink" title="单实例实现"></a>单实例实现</h2><h3 id="获取锁"><a href="#获取锁" class="headerlink" title="获取锁"></a>获取锁</h3><p>由于<code>Redis</code>的线程模型是单线程的- 也就是说，对于多个客户端任一时刻只会有一个请求在被处理。所以，通过“对<code>Redis</code>中某个指定的<code>Key</code>在不存在的情况下设置某个值，而存在就是有其他线程已经设置了这个值”这个语义行保证，可以实现<strong>获取锁</strong>这么一个操作。对应到<code>Redis</code>命令，也就是:</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br><span class="line">SET resource_name my_random_value NX PX 30000</span><br></pre></td></tr></table></figure>
+<p>上面的参数<code>NX</code>表示<strong>仅在前面的 <code>resource_name</code>不存在的情况下才设置</strong>，这其实就是某种程度上的<strong>排它性</strong>。 而后面的<code>PX</code>则表示过期时间，<code>Redis</code>会在这个时间过后<strong>自动删除这个key</strong>,所以这个时间隐含的意义是<strong>获取到锁过后的操作的最大时间</strong>，如果锁里面的操作超过这个时间，那么这个<code>Redis</code>锁的正确性就会存疑（后面介绍具体原因）</p>
+<p>关于 value 的生成，官方推荐从<code>/dev/urandom</code>中取20位随机数，或者用RC4在<code>/dev/urandom</code>中得到一个<code>seed</code>,然后生成伪随机流，又或者直接用时间戳+客户端编号的方式都可以。</p>
+<h3 id="释放锁"><a href="#释放锁" class="headerlink" title="释放锁"></a>释放锁</h3><p>上面写到，在<code>Redis</code>中设置一个指定的<code>key</code>其实就是获取一个锁，那么释放锁也只需要删除这个<code>key</code>即可。但是，如下方式:</p>
+<figure class="highlight dos"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="built_in">DEL</span> resource_name</span><br></pre></td></tr></table></figure>
+<p>有一个潜在的问题：如果客户端A获取到了锁并且由于Full GC或者网络阻塞等原因没有释放锁，此时<code>Redis</code>服务器上这个锁刚好超时，客户端B获取到了这个锁。那么当客户端A的释放锁请求到了<code>Redis</code></p>
+<p>后就会释放此时实际上是客户端B的锁。所以，释放锁这个操作需要判断Value是之前锁定的那一个。</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br><span class="line">if redis.call("get",KEYS[1]) == ARGV[1] then</span><br><span class="line">    return redis.call("del",KEYS[1])</span><br><span class="line"><span class="attribute">else</span></span><br><span class="line">    return 0</span><br><span class="line"><span class="attribute">end</span></span><br></pre></td></tr></table></figure>
+<p>这里是通过<code>lua</code>脚本释放锁，需要传入要释放的锁的<code>key</code>和<code>value</code>。 这里为什么要通过脚本而不是直接在客户端用这种方式呢:</p>
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="function"><span class="title">if</span><span class="params">(redis.get(<span class="string">'key'</span>)</span></span> == <span class="string">'value'</span>)&#123;</span><br><span class="line"></span><br><span class="line">    redis.del(<span class="string">'key'</span>)</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这实际上是因为上面的代码里的查询和删除不是原子性的，完全有可能出现<code>get</code>方法返回的是正确的值，然后马上这个<code>key</code>过期而其他线程获取到锁，然后就会出现误删其他人的锁的情况。而</p>
+<p><code>lua</code>脚本则可以保证原子性。</p>
+<h3 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h3><p>上述的单实例的锁实现有一个潜在的问题： Redis会在指定的超时时间后自动删除这个key, 也就是释放锁。考虑这种情况：</p>
+<ul>
+<li><p>Client A先获得了锁</p>
+</li>
+<li><p>Client B在等待A释放锁</p>
+</li>
+<li><p>此时, Client A被阻塞在某些事上，比如GC, RPC调用, CPU不足等待，导致Client A的操作时间超过了指定的锁时间</p>
+</li>
+<li><p><code>Redis</code>发现这个锁已经超时还没有被释放，于是自动释放了这个锁（担心遇到死锁）</p>
+</li>
+<li><p>Client B获得了锁并且更新了资源</p>
+</li>
+<li><p>Client A恢复过来， 那么此时Client A和Client B都持有了锁。 如果他们都会数据库做了某些操作，那么就可能出现一方覆盖另外一方结果的情况</p>
+</li>
+</ul>
+<p>上述的情况我在开发中实际遇到过，还是核心记账系统。<code>HBase</code><a href="https://www.slideshare.net/enissoz/hbase-and-hdfs-understanding-filesystem-usage" target="_blank" rel="noopener">也有</a></p>
+<p>比如我们更新数据的操作是这样的:</p>
+<figure class="highlight arduino"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">int</span> amt = UserAmt.<span class="built_in">find</span>(); <span class="comment">//从数据库查出某个数据</span></span><br><span class="line"></span><br><span class="line">amt = amt - crtAmt;  <span class="comment">//经过计算</span></span><br><span class="line"></span><br><span class="line">UserAmt.update(amt); <span class="comment">//然后把这个值在数据库里通过 update xxx set val = $&#123;val&#125;来更新</span></span><br></pre></td></tr></table></figure>
+<p>上面这种方式的代码就可能会出现值被覆盖的问题。</p>
+<p>要解决这个问题需要通过<code>fence(栅栏)</code>技术，其实也就是乐观锁机制。我们需要一个版本号来排它。</p>
+<p><img src="https://gitee.com/angus_lean/markDownPic/raw/master/2019/04/cuccency-fence.png" alt="fence"></p>
+<p>也就是说:</p>
+<ul>
+<li><p>锁服务需要一个单调递增的版本号</p>
+</li>
+<li><p>写数据的时候也需要版本号</p>
+</li>
+<li><p>数据库服务需要保存版本号，然后对请求做检查</p>
+</li>
+</ul>
+<p>对于数据库，我们还有一种简单的方式，就是在更新数据时用这种方式:</p>
+<figure class="highlight stata"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">update</span> table_name <span class="keyword">set</span> xxx = #&#123;xxx&#125;, <span class="keyword">version</span> = <span class="keyword">version</span>+1 where <span class="keyword">version</span> = #&#123;<span class="keyword">version</span>&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">//或者</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">update</span> table_name <span class="keyword">set</span> xxx = xxx+#&#123;xxx&#125; where xxx = #&#123;oldxxx&#125;;</span><br></pre></td></tr></table></figure>
+<p>PS： 某种意义上，这其实就是CAS。</p>
+<h2 id="多实例实现"><a href="#多实例实现" class="headerlink" title="多实例实现"></a>多实例实现</h2><p><code>Redis</code>官方提供了一种分布式环境下的锁算法: <code>Redlock</code>。该算法描述如下：</p>
+<ul>
+<li><p>获取当前时间</p>
+</li>
+<li><p>对N个实例顺序进行获取锁的操作。对单实例的操作同上。要求是对一个Redis实例的操作时间要远远小于锁的超时时间，这样可以保证在少数Redis节点挂掉的时候仍可快速对下一个节点进行操作</p>
+</li>
+<li><p>客户端记录所有实例返回加锁成功的时间，当且仅当客户端获取到<strong>多半实例(N/2+1)</strong>的锁且获取锁的时间小于锁超时时间，锁才认为是成功获取</p>
+</li>
+<li><p>如果锁获取成功，锁的有效时间就是初始时间减去上面所说的获取锁花费时间</p>
+</li>
+<li><p>如果因为任何原因获取锁失败，则尝试在所有节点删除这个锁（即使这个节点没有获取成功）</p>
+</li>
+</ul>
+<h2 id="一些细节问题"><a href="#一些细节问题" class="headerlink" title="一些细节问题"></a>一些细节问题</h2><h3 id="时钟摇摆问题"><a href="#时钟摇摆问题" class="headerlink" title="时钟摇摆问题"></a>时钟摇摆问题</h3><p>由于使用的各个Redis实例之间没有同步的时钟，并且每个机器时间可能不准，最简单的做法是在上面步骤3中的时间再减去一小段时间。关于这个有个<a href="https://dl.acm.org/citation.cfm?id=74870" target="_blank" rel="noopener">讨论</a>.</p>
+<p>不过实际使用时，这个变量很难确定，所以大部分实现库也没有对这个做特殊处理。但是必须注意这个是事实存在的问题</p>
+<h3 id="失败重试"><a href="#失败重试" class="headerlink" title="失败重试"></a>失败重试</h3><p>当一个客户端获取锁失败时，应该随机延迟一会儿再次尝试获取锁，已避免多个客户端同时获取锁的竞争情况（最坏时大家都获取不到锁）。理想情况下，应该使用IO多路复用对多个实例执行<code>SET</code>。</p>
+<p>如果获取<strong>多半实例(N/2+1)</strong>锁失败，最好的方式是立即释放所获取到的锁，而不用等待锁超时了再次尝试重新获取。</p>
+<h3 id="释放锁-1"><a href="#释放锁-1" class="headerlink" title="释放锁"></a>释放锁</h3><p>释放锁则只需要简单的遍历所有实例，然后删除<code>key</code>即可，而不用管某个实例上是否成功获取到锁。</p>
+<h3 id="故障恢复"><a href="#故障恢复" class="headerlink" title="故障恢复"></a>故障恢复</h3><p>使用Redis做分布式锁的大部分用户都是因为它的低延迟、高性能。而在出现故障的情况下，Redis会有一些问题。</p>
+<p>对于Redis出现故障重启过后的逻辑，分为两种情况：</p>
+<ol>
+<li>关闭持久化</li>
+</ol>
+<p>当关闭持久化后，如果某个客户端获取到了锁（也就是多半实例），在Redis因为任何问题重启过后这个客户端获取到的所有锁就失效了，其他客户端可以再次获得锁。</p>
+<ol start="2">
+<li>开启持久化</li>
+</ol>
+<p>如果开启了AOF持久化（<code>rsync</code>，每隔1秒终保存一次数据），重启会导致丢失1秒左右的数据，也会导致锁的互斥性问题。而如果关闭<code>rsync</code>（保证锁可以被安全的保存），就对性能有了较大了影响（每次更改都会持久化），与传统的<a href="https://en.wikipedia.org/wiki/CAP_theorem" target="_blank" rel="noopener">CP</a>系统实现也差不多了。</p>
+<p>上述问题都是因为系统重启过后<strong>锁依然是有效</strong>，而其他客户在此时有可能再次获得锁。如果我们让所有的锁在重启过后都已经<strong>超时</strong>，则上述问题都可以很容易的解决。所以，在Redis系统崩溃过后，我们在<code>Redis</code>锁的最大的有效时长的延迟过后再重启，则不会出现类似的问题。</p>
+<h3 id="安全性的相关讨论"><a href="#安全性的相关讨论" class="headerlink" title="安全性的相关讨论"></a>安全性的相关讨论</h3><p>假设客户端可以获取大部分实例上的锁，而所有实例均有一个相同的锁合法时间，由于初始设置的时间不一定相同，所以各个实例上的键不一定同时过期。假设 T1 为请求第一个实例的时间，T2 为从最后一个服务器得到回复的时间。在客户端认为获得到分布式锁后，第一个实例上的键会在 MIN_VALIDITY = TTL - (T2 - T1) - CLOCK_DRIFT 后过期，之后其他的键也会过期，所以确定在 MIN_VALIDITY 内，所有键都还未过期。</p>
+<p>在过半实例都被设置的情况下，若一个客户端请求获取锁，因为无法在过半的实例上设置键，所以会失败。如果一个客户端占有锁的时间接近或大于 MIN_VALIDITY，部分实例上的锁才会失效。MIN_VALIDITY 内是不可能存在过半实例可以被设置键的情况，故在 MIN_VALIDITY 内分布式锁是安全的。</p>
+<p><a href="http://antirez.com/news/101" target="_blank" rel="noopener">作者关于安全性的一篇文章</a> 有关于<code>Redlock</code>安全性的一篇讨论。<code>Martin</code> 认为<code>Redlock</code>算法是一个asynchronous model with unreliable failure detectors，依赖了不可靠的元素来保证其一致性，容错性有一定限度，超过限度则无法保证其正确性。GC 的 stop-the-world、网络的阻塞、CPU切片等等都会影响 Redlock 的效率或者正确性，而作者的答案是:</p>
+<ul>
+<li>对于锁内超时，<strong>分布式锁并不能提供强一致性，只在没有其他办法控制共享资源时才会使用</strong>，<code>Redlock</code>算法是为了找到单节点或者主备锁的替代品，并且在复杂度和效率上取得平衡</li>
+</ul>
+<blockquote>
+<p>如果对于一致性有强烈的需求，<code>zookeeper</code>或者<code>fencing token</code>或者说<code>CAS</code>都是不错的选择</p>
+</blockquote>
+<p>陈硕在<a href="https://time.geekbang.org/column/article/5175" target="_blank" rel="noopener">极客时间专栏</a>上对这个问题也有描述。如果我们需要的是修改共享资源，CAS/乐观锁等方式都可以实现， 如果我们需要的是进程或者实例之间的互斥，则需要分布式锁。而对于<em>强一致性</em>的需求，则决定了是否要使用<code>Redis</code>作为工具，<code>zookeeper</code>是一个不错的替代品。</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Redis/" rel="tag"># Redis</a>
+          
+            <a href="/tags/分布式缓存/" rel="tag"># 分布式缓存</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/05/07/Java/Framework/Dubbo/Dubbo源码分析-一次调用的关键路径/" rel="next" title="Dubbo的一次RPC调用客户端关键路径分析">
+                <i class="fa fa-chevron-left"></i> Dubbo的一次RPC调用客户端关键路径分析
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/06/06/DistributeSystem/缓存的几种模式简述/" rel="prev" title="缓存的几种模式">
+                缓存的几种模式 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">cupofish@gmail.com</p>
+              <div class="site-description motion-element" itemprop="description"></div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">42</span>
+                    <span class="site-state-item-name">posts</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">23</span>
+                    <span class="site-state-item-name">categories</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">27</span>
+                    <span class="site-state-item-name">tags</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  
+                  
+                    
+                  
+                  
+                    
+                  
+                  <a href="https://github.com/anguslean" title="GitHub &rarr; https://github.com/anguslean" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+            </div>
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#单实例实现"><span class="nav-number">1.</span> <span class="nav-text">单实例实现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#获取锁"><span class="nav-number">1.1.</span> <span class="nav-text">获取锁</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#释放锁"><span class="nav-number">1.2.</span> <span class="nav-text">释放锁</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#问题"><span class="nav-number">1.3.</span> <span class="nav-text">问题</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#多实例实现"><span class="nav-number">2.</span> <span class="nav-text">多实例实现</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#一些细节问题"><span class="nav-number">3.</span> <span class="nav-text">一些细节问题</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#时钟摇摆问题"><span class="nav-number">3.1.</span> <span class="nav-text">时钟摇摆问题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#失败重试"><span class="nav-number">3.2.</span> <span class="nav-text">失败重试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#释放锁-1"><span class="nav-number">3.3.</span> <span class="nav-text">释放锁</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#故障恢复"><span class="nav-number">3.4.</span> <span class="nav-text">故障恢复</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#安全性的相关讨论"><span class="nav-number">3.5.</span> <span class="nav-text">安全性的相关讨论</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+    <div id="sidebar-dimmer"></div>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2021</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">cupofish@gmail.com</span>
+
+  
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.0"></script>
+
+  <script src="/js/motion.js?v=7.1.0"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/affix.js?v=7.1.0"></script>
+
+  <script src="/js/schemes/pisces.js?v=7.1.0"></script>
+
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.0"></script>
+<script src="/js/post-details.js?v=7.1.0"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.0"></script>
+
+
+  
+
+  
+
+  
+
+  
+  
+
+<script>
+  var disqus_config = function() {
+    this.page.url = "http://www.anguslean.cn/2019/05/11/Tool/Redis单实例锁和Redlock算法/";
+    this.page.identifier = "2019/05/11/Tool/Redis单实例锁和Redlock算法/";
+    this.page.title = 'Redis单实例锁和Redlock分布式锁算法';
+    };
+  function loadComments() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://anguslean.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', '' + +new Date());
+    (d.head || d.body).appendChild(s);
+  }
+  
+    $(function() {
+      var offsetTop = $('#comments').offset().top - $(window).height();
+      if (offsetTop <= 0) {
+        // load directly when there's no a scrollbar
+        loadComments();
+      } else {
+        $(window).on('scroll.disqus_scroll', function() {
+          // offsetTop may changes because of manually resizing browser window or lazy loading images.
+          var offsetTop = $('#comments').offset().top - $(window).height();
+          var scrollTop = $(window).scrollTop();
+
+          // pre-load comments a bit? (margin or anything else)
+          if (offsetTop - scrollTop < 60) {
+            $(window).off('.disqus_scroll');
+            loadComments();
+          }
+        });
+      }
+    });
+  
+</script>
+
+
+
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

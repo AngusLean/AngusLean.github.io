@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang>
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.0" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.1.0',
+    sidebar: {"position":"left","display":"always","offset":12,"onmobile":false,"dimmer":true},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="本系列文章主要来源为《代码大全》，并且目的仅仅是笔记。 实际设计千差万别，书中所记可为理论基础，但是一定不能照搬照抄，灵活变通才是我们“软件工程师”区别于机器的特点。同时，这些“道理”对于没有设计经验的人来说很难记住，但是对有了一点经验的人来说，就会有一种，食之无味，弃之可惜的感觉。所以，设计中，不断思考，不断总结，不断观摩，方为进步的途径。 架构设计中的挑战设计是一个wicked的问题wicke">
+<meta name="keywords" content="架构设计">
+<meta property="og:type" content="article">
+<meta property="og:title" content="《代码大全》读书笔记1-架构设计基本概念">
+<meta property="og:url" content="http://www.anguslean.cn/2018/02/03/Engineering/《代码大全》读书笔记1-架构设计基本概念/index.html">
+<meta property="og:site_name" content="AngusLean Blog">
+<meta property="og:description" content="本系列文章主要来源为《代码大全》，并且目的仅仅是笔记。 实际设计千差万别，书中所记可为理论基础，但是一定不能照搬照抄，灵活变通才是我们“软件工程师”区别于机器的特点。同时，这些“道理”对于没有设计经验的人来说很难记住，但是对有了一点经验的人来说，就会有一种，食之无味，弃之可惜的感觉。所以，设计中，不断思考，不断总结，不断观摩，方为进步的途径。 架构设计中的挑战设计是一个wicked的问题wicke">
+<meta property="og:locale" content="default">
+<meta property="og:updated_time" content="2018-02-02T16:00:00.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="《代码大全》读书笔记1-架构设计基本概念">
+<meta name="twitter:description" content="本系列文章主要来源为《代码大全》，并且目的仅仅是笔记。 实际设计千差万别，书中所记可为理论基础，但是一定不能照搬照抄，灵活变通才是我们“软件工程师”区别于机器的特点。同时，这些“道理”对于没有设计经验的人来说很难记住，但是对有了一点经验的人来说，就会有一种，食之无味，弃之可惜的感觉。所以，设计中，不断思考，不断总结，不断观摩，方为进步的途径。 架构设计中的挑战设计是一个wicked的问题wicke">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.anguslean.cn/2018/02/03/Engineering/《代码大全》读书笔记1-架构设计基本概念/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>《代码大全》读书笔记1-架构设计基本概念 | AngusLean Blog</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="default">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">AngusLean Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>Home</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>Categories</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>Archives</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>Tags</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>About</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.anguslean.cn/2018/02/03/Engineering/《代码大全》读书笔记1-架构设计基本概念/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="cupofish@gmail.com">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="AngusLean Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">《代码大全》读书笔记1-架构设计基本概念
+
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2018-02-03 00:00:00" itemprop="dateCreated datePublished" datetime="2018-02-03T00:00:00+08:00">2018-02-03</time>
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/方法论/" itemprop="url" rel="index"><span itemprop="name">方法论</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/方法论/基本素养/" itemprop="url" rel="index"><span itemprop="name">基本素养</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>本系列文章主要来源为《代码大全》，并且目的仅仅是笔记。 实际设计千差万别，书中所记可为理论基础，但是一定不能照搬照抄，灵活变通才是我们“软件工程师”区别于机器的特点。<br>同时，这些“道理”对于没有设计经验的人来说很难记住，但是对有了一点经验的人来说，就会有一种，食之无味，弃之可惜的感觉。所以，设计中，不断思考，不断总结，不断观摩，方为进步的途径。</p>
+<h3 id="架构设计中的挑战"><a href="#架构设计中的挑战" class="headerlink" title="架构设计中的挑战"></a>架构设计中的挑战</h3><h4 id="设计是一个wicked的问题"><a href="#设计是一个wicked的问题" class="headerlink" title="设计是一个wicked的问题"></a>设计是一个wicked的问题</h4><p>wicked，即只有通过解决或者部分解决才能被明确的问题。 拿到项目中就是，需求一直在变更，往往只有解决了一个问题才能明确设计面对的具体问题。</p>
+<a id="more"></a>
+<h4 id="设计是个了无章法的过程（sloppy-process）"><a href="#设计是个了无章法的过程（sloppy-process）" class="headerlink" title="设计是个了无章法的过程（sloppy process）"></a>设计是个了无章法的过程（sloppy process）</h4><p>软件设计的成果应该是组织良好，干净利落，但是过程却不是一帆风顺。<br>设计过程中会犯很多错误，但是在设计阶段犯错并且改正，这个代价是远低于编码阶段修改的。<br>同时，很难界定一个设计是“好的”还是“坏的”:设计到什么细节，哪些需要用形式化的设计符号表示，哪些可以留到编码才做，怎样才算完成？<br>结果往往是到没时间做为止。</p>
+<h4 id="设计是一个不断取舍，调整优先级的过程"><a href="#设计是一个不断取舍，调整优先级的过程" class="headerlink" title="设计是一个不断取舍，调整优先级的过程"></a>设计是一个不断取舍，调整优先级的过程</h4><p>衡量硬件，带宽，开发能力，成本等等条件之间的平衡度。 比如反应时间与开发速度之间的取舍（例如项目早期看重快速出结果，选择一些快速开发语言，而大了过后更倾向于系统稳定性，可维护性上）</p>
+<h4 id="设计受到诸多限制"><a href="#设计受到诸多限制" class="headerlink" title="设计受到诸多限制"></a>设计受到诸多限制</h4><p>设计的要点，一部分创造可能发生的事情，一部分又是在限制可能发生的事情。<br>换句话说，在受限的条件下做到尽可能多的事情</p>
+<h4 id="设计是不确定的"><a href="#设计是不确定的" class="headerlink" title="设计是不确定的"></a>设计是不确定的</h4><p>像前面说的，设计很难界定优劣，每个人的设计都是不同的</p>
+<h4 id="设计是一个启发式过程"><a href="#设计是一个启发式过程" class="headerlink" title="设计是一个启发式过程"></a>设计是一个启发式过程</h4><p>设计过程充满了不确定性，因此设计技术也就倾向于“探索式”，不能保证能够产生预期的结果。不断试验，不断犯错，不断改进。</p>
+<h4 id="设计是自然而然行成的"><a href="#设计是自然而然行成的" class="headerlink" title="设计是自然而然行成的"></a>设计是自然而然行成的</h4><p>把设计的这些特性归纳起来。我们可以说设计是自然而然形成的， 它是在不断的设计评估，非正式讨论，写试验代码，修改试验代码过程中演化和完善的。</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/架构设计/" rel="tag"># 架构设计</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/02/03/Engineering/《代码大全》读书笔记2-架构的理想特征/" rel="next" title="《代码大全》读书笔记2-架构的理想特征">
+                <i class="fa fa-chevron-left"></i> 《代码大全》读书笔记2-架构的理想特征
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/03/28/Java/Concurrent/Java并发基础（1.1）从双重检查锁模式说起/" rel="prev" title="Java并发基础（1.1）从双重检查锁模式说起">
+                Java并发基础（1.1）从双重检查锁模式说起 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">cupofish@gmail.com</p>
+              <div class="site-description motion-element" itemprop="description"></div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">42</span>
+                    <span class="site-state-item-name">posts</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">23</span>
+                    <span class="site-state-item-name">categories</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">27</span>
+                    <span class="site-state-item-name">tags</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  
+                  
+                    
+                  
+                  
+                    
+                  
+                  <a href="https://github.com/anguslean" title="GitHub &rarr; https://github.com/anguslean" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+            </div>
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#架构设计中的挑战"><span class="nav-number">1.</span> <span class="nav-text">架构设计中的挑战</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#设计是一个wicked的问题"><span class="nav-number">1.1.</span> <span class="nav-text">设计是一个wicked的问题</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#设计是个了无章法的过程（sloppy-process）"><span class="nav-number">1.2.</span> <span class="nav-text">设计是个了无章法的过程（sloppy process）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#设计是一个不断取舍，调整优先级的过程"><span class="nav-number">1.3.</span> <span class="nav-text">设计是一个不断取舍，调整优先级的过程</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#设计受到诸多限制"><span class="nav-number">1.4.</span> <span class="nav-text">设计受到诸多限制</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#设计是不确定的"><span class="nav-number">1.5.</span> <span class="nav-text">设计是不确定的</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#设计是一个启发式过程"><span class="nav-number">1.6.</span> <span class="nav-text">设计是一个启发式过程</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#设计是自然而然行成的"><span class="nav-number">1.7.</span> <span class="nav-text">设计是自然而然行成的</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+    <div id="sidebar-dimmer"></div>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2021</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">cupofish@gmail.com</span>
+
+  
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.0"></script>
+
+  <script src="/js/motion.js?v=7.1.0"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/affix.js?v=7.1.0"></script>
+
+  <script src="/js/schemes/pisces.js?v=7.1.0"></script>
+
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.0"></script>
+<script src="/js/post-details.js?v=7.1.0"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.0"></script>
+
+
+  
+
+  
+
+  
+
+  
+  
+
+<script>
+  var disqus_config = function() {
+    this.page.url = "http://www.anguslean.cn/2018/02/03/Engineering/《代码大全》读书笔记1-架构设计基本概念/";
+    this.page.identifier = "2018/02/03/Engineering/《代码大全》读书笔记1-架构设计基本概念/";
+    this.page.title = '《代码大全》读书笔记1-架构设计基本概念';
+    };
+  function loadComments() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://anguslean.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', '' + +new Date());
+    (d.head || d.body).appendChild(s);
+  }
+  
+    $(function() {
+      var offsetTop = $('#comments').offset().top - $(window).height();
+      if (offsetTop <= 0) {
+        // load directly when there's no a scrollbar
+        loadComments();
+      } else {
+        $(window).on('scroll.disqus_scroll', function() {
+          // offsetTop may changes because of manually resizing browser window or lazy loading images.
+          var offsetTop = $('#comments').offset().top - $(window).height();
+          var scrollTop = $(window).scrollTop();
+
+          // pre-load comments a bit? (margin or anything else)
+          if (offsetTop - scrollTop < 60) {
+            $(window).off('.disqus_scroll');
+            loadComments();
+          }
+        });
+      }
+    });
+  
+</script>
+
+
+
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

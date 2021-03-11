@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang>
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.0" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.1.0',
+    sidebar: {"position":"left","display":"always","offset":12,"onmobile":false,"dimmer":true},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="什么是Java内存模型？在多核处理器系统中，处理器通常有一级或者多级的内部缓存（CPU参数中经常看到的L1,L2,L3就是），他们既提高了访问数据的性能（因为数据更接近处理器而不用受内存速度的影响），同时也减少了在共享内存总线时的冲突（因为很多情况下内部缓存就以及缓存了内存的操作）。 处理器缓存可以非常明显的改善性能，但同时它也带来了一个新的挑战。 比如说，当有多个处理器（对于多核处理器就是一个核">
+<meta name="keywords" content="并发">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Java并发基础（1）-内存模型杂序（JSR133 FAQ）">
+<meta property="og:url" content="http://www.anguslean.cn/2016/10/18/Java/Concurrent/Java并发基础（1）-内存模型杂序（JSR133 FAQ）/index.html">
+<meta property="og:site_name" content="AngusLean Blog">
+<meta property="og:description" content="什么是Java内存模型？在多核处理器系统中，处理器通常有一级或者多级的内部缓存（CPU参数中经常看到的L1,L2,L3就是），他们既提高了访问数据的性能（因为数据更接近处理器而不用受内存速度的影响），同时也减少了在共享内存总线时的冲突（因为很多情况下内部缓存就以及缓存了内存的操作）。 处理器缓存可以非常明显的改善性能，但同时它也带来了一个新的挑战。 比如说，当有多个处理器（对于多核处理器就是一个核">
+<meta property="og:locale" content="default">
+<meta property="og:updated_time" content="2018-04-24T16:00:00.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Java并发基础（1）-内存模型杂序（JSR133 FAQ）">
+<meta name="twitter:description" content="什么是Java内存模型？在多核处理器系统中，处理器通常有一级或者多级的内部缓存（CPU参数中经常看到的L1,L2,L3就是），他们既提高了访问数据的性能（因为数据更接近处理器而不用受内存速度的影响），同时也减少了在共享内存总线时的冲突（因为很多情况下内部缓存就以及缓存了内存的操作）。 处理器缓存可以非常明显的改善性能，但同时它也带来了一个新的挑战。 比如说，当有多个处理器（对于多核处理器就是一个核">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.anguslean.cn/2016/10/18/Java/Concurrent/Java并发基础（1）-内存模型杂序（JSR133 FAQ）/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Java并发基础（1）-内存模型杂序（JSR133 FAQ） | AngusLean Blog</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="default">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">AngusLean Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>Home</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>Categories</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>Archives</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>Tags</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>About</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.anguslean.cn/2016/10/18/Java/Concurrent/Java并发基础（1）-内存模型杂序（JSR133 FAQ）/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="cupofish@gmail.com">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="AngusLean Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">Java并发基础（1）-内存模型杂序（JSR133 FAQ）
+
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2016-10-18 00:00:00" itemprop="dateCreated datePublished" datetime="2016-10-18T00:00:00+08:00">2016-10-18</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2018-04-25 00:00:00" itemprop="dateModified" datetime="2018-04-25T00:00:00+08:00">2018-04-25</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Programming-Language/" itemprop="url" rel="index"><span itemprop="name">Programming Language</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Programming-Language/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Programming-Language/Java/并发/" itemprop="url" rel="index"><span itemprop="name">并发</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h3 id="什么是Java内存模型？"><a href="#什么是Java内存模型？" class="headerlink" title="什么是Java内存模型？"></a>什么是Java内存模型？</h3><p>在多核处理器系统中，处理器通常有一级或者多级的内部缓存（CPU参数中经常看到的L1,L2,L3就是），他们既提高了访问数据的性能（因为数据更接近处理器而不用受内存速度的影响），同时也减少了在共享内存总线时的冲突（因为很多情况下内部缓存就以及缓存了内存的操作）。 处理器缓存可以非常明显的改善性能，但同时它也带来了一个新的挑战。 比如说，当有多个处理器（对于多核处理器就是一个核心）同时访问同一个内存地址的时候，在什么条件下他们看见的是同一个值呢？   因为不同的处理器可能都有自己的缓存， 如何保证多个处理器都必须从内存中去读取该内存地址的数据呢？</p>
+<a id="more"></a>
+<p>在处理器层次，一个内存模型为如下问题定义了必要和高效的条件：</p>
+<pre><code>*当前处理器如何“看见”其他处理器对内存地址的“写”操作
+*其他处理器如何“看见”当前处理器对内存地址的“写”操作
+</code></pre><p>一些处理器提出了一种强内存模型，它要求所有处理器在任何时刻对任何内存地址都看到相同的值， 另外一些处理器提出了一种弱内存模型，其实也就是一种特殊的指令： 内存屏障（<code>memory barriers</code> ），为了当前处理器看见其他处理器对内存的写或者其他处理器看见当前处理器的操作它要求刷新或者验证处理器缓存的数据。  在加锁(<code>lock</code>)或者解锁(<code>unlock</code>)的时候内存屏障经常发生。 但是对于高级语言来说它是不可见的。</p>
+<p>由于内存屏障的缺失，强内存模型在某些情况下更容易编程。但是，即使在强内存模型下， 内存屏障也经常是必须的。 他们的位置经常是违反直觉的。 最近的处理器设计中，由于内存屏障对于贯穿多个处理器和大内存之间的内存一致性做出的保证， 更倾向于弱内存模型</p>
+<p>由于编译器重排序，线程对内存地址的写操作是否对其他线程也可见这个问题变得更加复杂。  编译器可能会认为移动某个写操作在后面是更高效的（这里涉及到编译器的优化策略， 典型的是循环体中不会改变的变量作为循环条件，然后在其他线程修改，但是根据语义分析，编译器会觉得循环条件不会改变而把变量移动位置 ），当然，这些操作都不会改变程序的语义。  所以如果编译器延迟或者提前了某个操作，这会很明显的影响其他线程看到的数据。   这些折射出了缓存缓存的影响。</p>
+<p>更普遍的是，程序中的写操作会被向前移动。 这种情况下，其他线程可能会看到 一个 还没有真正发生的 “写”操作。  这些灵活性都是特意设计的： 给予编译器、运行环境或者硬件在最优的顺序执行代码的灵活 性。在内存模型的范畴内，我们可以达到更高的性能。<br>考虑如下代码:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">Class Reordering &#123;</span><br><span class="line">    <span class="keyword">int</span> x = <span class="number">0</span>, y = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">write</span><span class="params">()</span></span>&#123;</span><br><span class="line"></span><br><span class="line">         x = <span class="number">1</span>;</span><br><span class="line">         y = <span class="number">2</span>;     </span><br><span class="line">     &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">reader</span><span class="params">()</span></span>&#123;</span><br><span class="line"></span><br><span class="line">         <span class="keyword">int</span> r1 = y ;</span><br><span class="line">         <span class="keyword">int</span> r2 = x;</span><br><span class="line"></span><br><span class="line">     &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>多线程情况下，上述代码中的reader将会看到y=2 ,因为y在x之后被赋值。编写代码的可能认为x的值一定是1，但是，赋值操作很可能被重排序。 比如说 ，对y的赋值可能先于对x的赋值。 此时，如果对y的赋值完成过后，线程就调用了reader方法，那么r1将会是2，r2却是0 。  由于重排序带来的不确定性，r1和r2的值完全无法确定。</p>
+<hr>
+<p><strong>Java内存模型描述了多线程环境下哪种代码是合法的，线程和内存是如何相互影响。它描述了低层次的存储细节和程序变量、 从 真实系统中内存或者寄存器读或者写数据 的关系。通过多种硬件以及多种编译器优化来实现该模型。<br>Java包含多种语言指令，比如 <code>volatile, final ,synchronized</code>， 他们向编译器描述了并发程序的要求。 Java内存模型定义了<code>volatile</code>和<code>synchronized</code>的行为，最重要的，它确定在所有多种处理器平台上具有相同的行为。 也就是说，java内存模型抽象了处理器相关的并发程序处理细节，提供了一个与具体平台无关的、语义确保得到保证的并发抽象层。 </strong></p>
+<hr>
+<p>###其他语言是否有内存模型<br>C以及C++语言的多线程程序都是与具体编译器、操作系统、处理器强相关的。 不同平台下的代码不兼容。</p>
+<p>###JSR133S讲的是什么？<br>1997年开始，在java语言规范的17章就有了java内存模型的定义。 它定义了一些看起来是令人困惑的行为（比如final字段可能看起来改变了值）。 它也阻碍了编译器进行通用优化。</p>
+<p>Java内存模型是一个充满雄心壮志的愿景。它是第一次有语言规范提出可以保证在并发在多种处理器之间有相同语义的内存模型。不幸的是，实现起来比想象中的还要困难。 JSR133提出了一个修复了之前的问题的一个新的内存模型。同时，改变了final和volatile 的语义。</p>
+<p>JSR133的目标包括：</p>
+<ul>
+<li>保留现存的安全保证，比如类型安全。  加强了其他的，比如说，变量的值不会无中生有的被创建：线程必须有存储变量值的“正当”理由（其实就是为了能看到同样的值）</li>
+<li>同步程序代码必须足够简单、易懂</li>
+<li>定义不正确、不完全的同步程序语义， 以最小化安全风险</li>
+<li>程序编写者能够清楚的知道多线程程序如何和内存相互影响的（即Java内存模型提供的语义在任何平台都使用并且语义相同）</li>
+<li>可以编写使用多种流行处理器的高效JVM实现</li>
+<li>一个新的初始化安全性的保证。如果一个对象以及被正确的构造（意味着它的引用没有超出它的构造函数），那么所有看得见该引用的线程都会看见相同的构造函数中赋值的final成员变量值，即使没有使用同步(<code>synchronization</code>)。</li>
+<li>多现存代码尽可能小的影响</li>
+</ul>
+<h3 id="重排序是什么？"><a href="#重排序是什么？" class="headerlink" title="重排序是什么？"></a>重排序是什么？</h3><p>有许多程序变量（类实例变量、类静态变量、数组）并没有按照代码中指定的顺序运行的例子，编译器为了优化可以自由选择指令顺序（语义一致的情况），处理器也可能乱序执行指令。数据可能按照完全不同代码中的顺序在处理器、处理器缓存、内存中移动。<br>比如说， 如果某个线程中先对变量a赋值，然后对变量b赋值， b的赋值不依赖于a的情况下，编译器可以自由改变他们的顺序。处理器缓存也可能在a之前就把b的值刷新到内存中去。 有许多可能的重排序源，比如编译器，JIT，CPU缓存。在现代处理器中，乱序执行、分支预测等手段都会导致这个问题。<br>编译器、运行时环境、硬件协同构造了一种“顺序执行”的假象，这意味着在单线程程序中程序是完全不会受到重排序的影响， 因为代码真的像是顺序执行下来的。 但是没有正确使用同步的多线程情况下，线程之间是否能看见相同的值或者看到改变完全是随机性的。 因为重排序使得每个线程可能都不是按照代码中的顺序执行的， 线程彼此没有交互的话很可能看到的不是相同的值。<br>大多数情况下，一个线程不关心其他线程做什么，如果关心就是<code>synchronization</code>所做的事了。</p>
+<h3 id="什么是不正确的同步-incorrectly-synchronization"><a href="#什么是不正确的同步-incorrectly-synchronization" class="headerlink" title="什么是不正确的同步(incorrectly synchronization)?"></a>什么是不正确的同步(<code>incorrectly synchronization</code>)?</h3><p>通常情况下，如下的代码会被认为是不正确的同步:</p>
+<ul>
+<li>某个线程在写某个变量</li>
+<li>另外一个线程在读该变量</li>
+<li>读和写并没有通过同步进行排序<br>这种时候，我们就说在那个变量上发生了数据竞争（<code>data race</code>）,程序也就是一个没有正确同步的程序</li>
+</ul>
+<p>###同步（synchronization）做了什么？<br>同步有多个方面：最为人所知的互斥性（<code>mutex</code>）: 即同一时间只有一个线程拥有某个对象的监视器（<code>monitor</code>），也意味着一旦一个线程进入了 监视器（<code>monitor</code>） 对象的同步代码快中，访问同一对象的同步代码块的其他线程必须等到拥有 监视器（<code>monitor</code>） 的线程退出同步代码库才行。<br>但是，<code>synchronization</code>还有一个一个比互斥更重要的特性：同步确保一个线程的内存写操作对其他拥有相同 监视器（<code>monitor</code>） 的线程可见。当我们推出同步代码块时，就释放了该监视器，它将会把处理器缓存中的数据刷新到内存中，以便于其他线程可以看到该线程所做的更改。在我们进入一个同步代码块之前，我们会申请一个 监视器（<code>monitor</code>），这一步骤会使得当前处理器的缓存失效而不得不从内存中重新读取数据，这样我们就可以看见任意线程所做的任何更改了。<br>新的内存模型语义在内存操作（<code>read field, write field , lock ,unlock</code>）、线程操作（<code>start , join</code>）中创造了一个非公平顺序，即一些操作会发生在另外一些操作之前（<code>happen-before</code>）,当一个操作在另一个操作之前时，前面一个将会确保在后面一个的前面并且是可见的。 排序的规则如下：</p>
+<ul>
+<li>按照程序代码中的顺序，同一个线程的操作会<code>happens-before</code>之后的操作</li>
+<li>同一个监视器上，<code>unlocl</code>是<code>happens-before</code>接下来的<code>lock</code>的</li>
+<li>同一个监视器上， 对一个<code>volatile</code>变量的写操作<code>happens-before</code>读操作</li>
+<li><code>start()</code>方法<code>happens-before</code>调用它的线程的任意操作</li>
+<li>线程中的操作<code>happens-before</code>该线程中<code>join()</code>方法返回的所有线程<br>上面的规则意味着，对于同一个 对象的监视器（<code>monitor</code>），当前同步块中的内存操作对于之后进入同步代码的任何线程都是可见的，也就是所有的内存操作<code>happens-before</code>于监视器的释放，监视器的释放<code>happens-before</code>监视器的获取。<br><em>PS： <code>synchronization</code>是<code>reentrant</code>的,也就是同步代码块可以调用同一个监视器的中的其他同步代码块， 也就是说拥有多次lock, 但是实际上是同一个锁</em><blockquote>
+<p>  Recall that a thread cannot acquire a lock owned by another thread. But a thread  can  acquire a lock that it already owns. Allowing a thread to acquire the same lock more than once enables  reentrant synchronization . This describes a situation where synchronized code, directly or indirectly, invokes a method that also contains synchronized code, and both sets of code use the same lock. Without reentrant synchronization, synchronized code would have to take many additional precautions to avoid having a thread cause itself to block.<br> <a href="https://docs.oracle.com/javase/tutorial/essential/concurrency/locksync.html" target="_blank" rel="noopener">locksync</a></p>
+</blockquote>
+</li>
+</ul>
+<p><em>为了建立<code>happens-before</code>关系，线程都应该是在相同的 监视器（<code>monitor</code>）上。线程A在对象X的同步代码块不是<code>happens-before</code>之后线程B在对象Y的同步代码块。释放和申请锁必须一一对应，否则，就是一个 <code>data race</code></em></p>
+<p>###<code>final</code>在新的内存模型（从JDK1.5开始的）是如何工作的？<br>对象的final属性在构造函数中设置，一旦一个对象被正确的构造，给final属性赋的值对于其他所有线程都是可见的了，不管是否在同步块中。 另外，这个final属性所应用的任何对象或者数组也和final属性本身一样对所有线程都是最新的。 这意味这对于final属性，不需要额外的同步代码即可保证其他线程也可以看见最新的值。<br>那么什么是“对象被正确的构造”？<br>简单的说，这意味着该对象的this引用没有“溢出”构造函数中，不然其他线程可能通过this引用访问到“初始化一半”了的对象。比如说，不要赋给静态域、也不要把其他对象作为一个回调等等。这些可以在构造函数完成过后做而不是构造函数中。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">FinalFieldExample</span> </span>&#123;</span><br><span class="line"><span class="keyword">final</span> <span class="keyword">int</span> x;</span><br><span class="line"><span class="keyword">int</span> y;</span><br><span class="line"><span class="keyword">static</span> FinalFieldExample f;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">FinalFieldExample</span><span class="params">()</span> </span>&#123;</span><br><span class="line">x = <span class="number">3</span>;</span><br><span class="line">y = <span class="number">4</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">writer</span><span class="params">()</span> </span>&#123;</span><br><span class="line">     f = <span class="keyword">new</span> FinalFieldExample();</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">reader</span><span class="params">()</span> </span>&#123;</span><br><span class="line"><span class="keyword">if</span> (f != <span class="keyword">null</span>) &#123;</span><br><span class="line">     <span class="keyword">int</span> i = f.x;</span><br><span class="line">     <span class="keyword">int</span> j = f.y;</span><br><span class="line">            &#125;</span><br><span class="line">     &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面代码描述了如何使用final，调用reader方法的线程一定会看到x的值为3，因为x是final的。而y则不保证一定是4. 如果上述代码的构造函数是这样:<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">FinalFieldExample</span>(<span class="params"></span>)</span> &#123; <span class="comment">// bad!</span></span><br><span class="line">     x = <span class="number">3</span>;</span><br><span class="line">     y = <span class="number">4</span>;</span><br><span class="line">     <span class="comment">//this溢出，应该避免这样的代码</span></span><br><span class="line">     <span class="keyword">global</span>.obj = <span class="keyword">this</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>那么线程将可以通过global.obj看到this的引用，x的值就不能保证是3.<br>对于final属性可以看到正确的构造函数中赋的值是非常好的特性，如果final属性本身是一个引用，那么在其他任何线程都可以保证final属性“至少”会看到构造函数中所指定的值，而如果某个线程通过该引用的方法修改了数据， 则不保证所有线程都能看到该值， 为了确保所有线程都可以看到最新的值，你还是必须使用<code>synchronization</code>来同步。</p>
+<blockquote>
+<p>final属性可以保证能看到对象构造函数值中最后指定的值， 而不是最新的值。<br>使用JNI来改变final值是未定义行为<br>如果final是引用或者数组类型，仍然需要同步 <code>synchronization</code>来保证所有线程都可以看见最新的值</p>
+</blockquote>
+<p>###<code>volatile</code><br><code>volatile</code>是一个通常用于线程通信的特殊字段，每次对<code>volatile</code>变量的读都会读取所有线程中最新的值。 所以，它通常被设计为多线程之间的一个标志性变量，它的值可能会不停的改变。 编译器和运行时环境都不允许在寄存器中缓存该变量的值，他们必须确保当有对<code>volatile</code>变量的写时，值直接被写到主内存中去以便于其他线程可以立马看到这个改变。同样的道理，读<code>volatile</code>变量时，也会清除缓存然后从主内存中重新读取数据。这也导致在volatile<code>变量时会禁止</code>reorder<code>在JSR133中，</code>volatile<code>仍然是不允许被重排序的，这也使得重排序它周围的正常变量变得更难，不过这不是多线程程序编写者关心的问题=_=.   对一个</code>volatile<code>变量的写操作就类似于释放一个监视器(</code>monitor<code>)，对一个</code>volatile`变量的读就类似于申请获得一个监视器(‘monitor’)。<br>比如说：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">VolatileExample</span> </span>&#123;</span><br><span class="line"><span class="keyword">int</span> x = <span class="number">0</span>;</span><br><span class="line"><span class="keyword">volatile</span> <span class="keyword">boolean</span> v = <span class="keyword">false</span>;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">writer</span><span class="params">()</span> </span>&#123;</span><br><span class="line">x = <span class="number">42</span>;</span><br><span class="line">v = <span class="keyword">true</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">reader</span><span class="params">()</span> </span>&#123;</span><br><span class="line">     <span class="keyword">if</span> (v == <span class="keyword">true</span>) &#123;</span><br><span class="line">           <span class="comment">//x可以保证是42</span></span><br><span class="line">     &#125;</span><br><span class="line">&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>考虑一个线程调用write方法一个线程调用reader方法，write方法写42到主内存中并释放监视器， read方法申请监视器并从主内存中读取42.<br> 从上面的介绍可以看出来<code>volatile</code>的作用很类似于<code>synchronization</code>，都可以保证获取到最新值， 所以对于<code>volatile</code>变量的读写都具有原子性，但是必须注意的是<strong>x++这种复合操作或者多个<code>volatile</code>操作是不具有原子性的，也就是结果不定的。 </strong></p>
+<hr>
+<p>引用:<br><a href="https://www.cs.umd.edu/~pugh/java/memoryModel/jsr-133-faq.html" target="_blank" rel="noopener">jsr133-faq</a><br><a href="https://docs.oracle.com/javase/tutorial/essential/concurrency/sync.html" target="_blank" rel="noopener">jsr133-synchronization</a></p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/并发/" rel="tag"># 并发</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/09/01/Engineering/记在2年开发经验过后--项目组的一些基本要求/" rel="next" title="记在2年开发经验过后--项目组的一些基本要求">
+                <i class="fa fa-chevron-left"></i> 记在2年开发经验过后--项目组的一些基本要求
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/04/17/Java/Concurrent/Java并发基础（2）-Synchronized/" rel="prev" title="Java并发基础（2）-Synchronized">
+                Java并发基础（2）-Synchronized <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">cupofish@gmail.com</p>
+              <div class="site-description motion-element" itemprop="description"></div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">42</span>
+                    <span class="site-state-item-name">posts</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">23</span>
+                    <span class="site-state-item-name">categories</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">27</span>
+                    <span class="site-state-item-name">tags</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  
+                  
+                    
+                  
+                  
+                    
+                  
+                  <a href="https://github.com/anguslean" title="GitHub &rarr; https://github.com/anguslean" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+            </div>
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#什么是Java内存模型？"><span class="nav-number">1.</span> <span class="nav-text">什么是Java内存模型？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#重排序是什么？"><span class="nav-number">2.</span> <span class="nav-text">重排序是什么？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#什么是不正确的同步-incorrectly-synchronization"><span class="nav-number">3.</span> <span class="nav-text">什么是不正确的同步(incorrectly synchronization)?</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+    <div id="sidebar-dimmer"></div>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2021</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">cupofish@gmail.com</span>
+
+  
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.0"></script>
+
+  <script src="/js/motion.js?v=7.1.0"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/affix.js?v=7.1.0"></script>
+
+  <script src="/js/schemes/pisces.js?v=7.1.0"></script>
+
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.0"></script>
+<script src="/js/post-details.js?v=7.1.0"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.0"></script>
+
+
+  
+
+  
+
+  
+
+  
+  
+
+<script>
+  var disqus_config = function() {
+    this.page.url = "http://www.anguslean.cn/2016/10/18/Java/Concurrent/Java并发基础（1）-内存模型杂序（JSR133 FAQ）/";
+    this.page.identifier = "2016/10/18/Java/Concurrent/Java并发基础（1）-内存模型杂序（JSR133 FAQ）/";
+    this.page.title = 'Java并发基础（1）-内存模型杂序（JSR133 FAQ）';
+    };
+  function loadComments() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://anguslean.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', '' + +new Date());
+    (d.head || d.body).appendChild(s);
+  }
+  
+    $(function() {
+      var offsetTop = $('#comments').offset().top - $(window).height();
+      if (offsetTop <= 0) {
+        // load directly when there's no a scrollbar
+        loadComments();
+      } else {
+        $(window).on('scroll.disqus_scroll', function() {
+          // offsetTop may changes because of manually resizing browser window or lazy loading images.
+          var offsetTop = $('#comments').offset().top - $(window).height();
+          var scrollTop = $(window).scrollTop();
+
+          // pre-load comments a bit? (margin or anything else)
+          if (offsetTop - scrollTop < 60) {
+            $(window).off('.disqus_scroll');
+            loadComments();
+          }
+        });
+      }
+    });
+  
+</script>
+
+
+
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

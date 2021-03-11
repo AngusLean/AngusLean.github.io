@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang>
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.0" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.1.0',
+    sidebar: {"position":"left","display":"always","offset":12,"onmobile":false,"dimmer":true},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="##基础使用 基本上Java程序员都简单的了解synchronized的使用： 无非就是用在多线程环境下的同步。 看如下简单的例子： 123456789101112131415161718192021222324public class UnsafeCounter &amp;#123;    private int count=0;    public int getAndIncrement() &amp;#1">
+<meta name="keywords" content="并发">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Java并发基础（2）-Synchronized">
+<meta property="og:url" content="http://www.anguslean.cn/2017/04/17/Java/Concurrent/Java并发基础（2）-Synchronized/index.html">
+<meta property="og:site_name" content="AngusLean Blog">
+<meta property="og:description" content="##基础使用 基本上Java程序员都简单的了解synchronized的使用： 无非就是用在多线程环境下的同步。 看如下简单的例子： 123456789101112131415161718192021222324public class UnsafeCounter &amp;#123;    private int count=0;    public int getAndIncrement() &amp;#1">
+<meta property="og:locale" content="default">
+<meta property="og:updated_time" content="2018-01-23T16:00:00.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Java并发基础（2）-Synchronized">
+<meta name="twitter:description" content="##基础使用 基本上Java程序员都简单的了解synchronized的使用： 无非就是用在多线程环境下的同步。 看如下简单的例子： 123456789101112131415161718192021222324public class UnsafeCounter &amp;#123;    private int count=0;    public int getAndIncrement() &amp;#1">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.anguslean.cn/2017/04/17/Java/Concurrent/Java并发基础（2）-Synchronized/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Java并发基础（2）-Synchronized | AngusLean Blog</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="default">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">AngusLean Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>Home</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>Categories</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>Archives</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>Tags</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>About</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.anguslean.cn/2017/04/17/Java/Concurrent/Java并发基础（2）-Synchronized/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="cupofish@gmail.com">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="AngusLean Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">Java并发基础（2）-Synchronized
+
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2017-04-17 00:00:00" itemprop="dateCreated datePublished" datetime="2017-04-17T00:00:00+08:00">2017-04-17</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2018-01-24 00:00:00" itemprop="dateModified" datetime="2018-01-24T00:00:00+08:00">2018-01-24</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Programming-Language/" itemprop="url" rel="index"><span itemprop="name">Programming Language</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Programming-Language/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Programming-Language/Java/并发/" itemprop="url" rel="index"><span itemprop="name">并发</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <a id="more"></a>
+<p>##基础使用</p>
+<p>基本上Java程序员都简单的了解synchronized的使用： 无非就是用在多线程环境下的同步。 看如下简单的例子：</p>
+<figure class="highlight axapta"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> </span></span><br><span class="line"><span class="class"><span class="title">UnsafeCounter</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    </span><br><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> </span><br><span class="line"><span class="keyword">count</span>=<span class="number">0</span></span><br><span class="line">;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    </span><br><span class="line"><span class="keyword">public</span> <span class="keyword">int</span> </span><br><span class="line">getAndIncrement() &#123;</span><br><span class="line"></span><br><span class="line">        </span><br><span class="line"><span class="keyword">return</span> <span class="keyword">this</span></span><br><span class="line">.</span><br><span class="line"><span class="keyword">count</span></span><br><span class="line">++;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面是一个简单的非常常见的POJO类，在多线程环境下的测试代码：<br><figure class="highlight arduino"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> </span></span><br><span class="line"><span class="class"><span class="title">RunUnsafeCounter</span> &#123;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    </span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> </span><br><span class="line">UnsafeCounter </span><br><span class="line">unsafeCounter </span><br><span class="line">= </span><br><span class="line"><span class="keyword">new</span> </span><br><span class="line">UnsafeCounter();</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    </span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> </span><br><span class="line">unsafeCounter() </span><br><span class="line">throws </span><br><span class="line">InterruptedException &#123;</span><br><span class="line"></span><br><span class="line">        </span><br><span class="line"><span class="keyword">int</span> </span><br><span class="line">i=</span><br><span class="line"><span class="number">0</span></span><br><span class="line">;</span><br><span class="line"></span><br><span class="line">        List&lt;Thread&gt; threadList = </span><br><span class="line"><span class="keyword">new</span> </span><br><span class="line">ArrayList&lt;&gt;(</span><br><span class="line"><span class="number">1025</span></span><br><span class="line">);</span><br><span class="line"></span><br><span class="line">        </span><br><span class="line"><span class="keyword">while</span> </span><br><span class="line">(i&lt;</span><br><span class="line"><span class="number">1000</span></span><br><span class="line">)&#123;</span><br><span class="line"></span><br><span class="line">            threadList.add(</span><br><span class="line"><span class="keyword">new</span> </span><br><span class="line">Thread(</span><br><span class="line"><span class="keyword">new</span> </span><br><span class="line">Runnable() &#123;</span><br><span class="line"></span><br><span class="line">                </span><br><span class="line">@Override</span><br><span class="line"></span><br><span class="line">                </span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> </span><br><span class="line"><span class="built_in">run</span>() &#123;</span><br><span class="line"></span><br><span class="line">                    System.</span><br><span class="line">out</span><br><span class="line">.<span class="built_in">println</span>(Thread.</span><br><span class="line">currentThread</span><br><span class="line">().getName()+</span><br><span class="line"><span class="string">" : "</span></span><br><span class="line">+</span><br><span class="line">unsafeCounter</span><br><span class="line">.getAndIncrement());;</span><br><span class="line"></span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">            &#125;));</span><br><span class="line"></span><br><span class="line">            i++;</span><br><span class="line"></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        threadList.forEach(thread -&gt; thread.start());</span><br><span class="line"></span><br><span class="line">        </span><br><span class="line"><span class="keyword">for</span></span><br><span class="line">(Thread thread : threadList)&#123;</span><br><span class="line"></span><br><span class="line">            thread.join();</span><br><span class="line"></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    </span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> </span><br><span class="line">main(<span class="keyword">String</span>[] args) &#123;</span><br><span class="line"></span><br><span class="line">        </span><br><span class="line"><span class="keyword">for</span></span><br><span class="line">(</span><br><span class="line"><span class="keyword">int</span> </span><br><span class="line">i=</span><br><span class="line"><span class="number">0</span> </span><br><span class="line">;i&lt;</span><br><span class="line"><span class="number">10</span> </span><br><span class="line">;i++)&#123;</span><br><span class="line"></span><br><span class="line">            </span><br><span class="line"><span class="keyword">try</span> </span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">                RunUnsafeCounter.</span><br><span class="line">unsafeCounter</span><br><span class="line">();</span><br><span class="line">                </span><br><span class="line">System.</span><br><span class="line">out</span><br><span class="line">.<span class="built_in">println</span>(</span><br><span class="line">unsafeCounter</span><br><span class="line">.getCount());</span><br><span class="line"></span><br><span class="line">            &#125; </span><br><span class="line"><span class="keyword">catch</span> </span><br><span class="line">(InterruptedException e) &#123;</span><br><span class="line"></span><br><span class="line">                e.printStackTrace();</span><br><span class="line"></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>上面的测试类中有一个静态的<figure class="highlight plain"><figcaption><span>， 按照平常单线程环境的结果，这里的值应该是1000. 但是运行```RunCounter```类就会发现结果不一定是 1000 并且每一次的结果都不一定相同。 这是因为多个线程同时访问 ```getAndIncrement```这一个非线程安全的方法，可能中间某几个线程可能同时在运行这个方法，然后在进行```++```操作时，某个线程获取到了当前值，结果又切换到了其他线程也获取到了当前值，然后这两个线程的 ```++```得到了相同的结果。 也就导致了最终结果的不确定性。</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">再看如下使用```synchronized```已保证线程安全性的代码：</span><br></pre></td></tr></table></figure></p>
+<p>public class<br>SafeCounter {</p>
+<p>private int<br>count<br>=<br>0<br>;</p>
+<p>public synchronized int<br>getCount() {</p>
+<p>return<br>count<br>;</p>
+<pre><code>}
+</code></pre><p>public synchronized int<br>getAndIncrement() {</p>
+<p>return this<br>.<br>count<br>++;</p>
+<pre><code>}
+</code></pre><p>}<br><figure class="highlight autohotkey"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">上面的POJO类的 ```getAndIncrement```方法使用 ```synchronized```修饰，而且```getCount```方法也使用 ```synchronized```修饰。 测试例子：</span><br></pre></td></tr></table></figure></p>
+<p>public class<br>RunSafeCounter {</p>
+<p>private static final<br>SafeCounter<br>safeCounter<br>=<br>new<br>SafeCounter();</p>
+<p>public static void<br>safeCounter()<br>throws<br>InterruptedException {</p>
+<p>int<br>i=<br>0<br>;</p>
+<pre><code>List&lt;Thread&gt; threadList = 
+</code></pre><p>new<br>ArrayList&lt;&gt;();</p>
+<p>while<br>(i&lt;<br>1000<br>){</p>
+<pre><code>threadList.add(
+</code></pre><p>new<br>Thread(<br>new<br>Runnable() {</p>
+<p>@Override</p>
+<p>public void<br>run() {</p>
+<p>safeCounter<br>.getAndIncrement();</p>
+<pre><code>        }
+
+    }));
+
+    i++;
+
+}
+
+threadList.forEach(thread -&gt; thread.start());
+</code></pre><p>for<br>(Thread thread : threadList){</p>
+<pre><code>        thread.join();
+
+    }
+
+}
+</code></pre><p>public static void<br>main(String[] args) {</p>
+<p>try<br>{</p>
+<p>for<br>(<br>int<br>i=<br>0<br>;i&lt;<br>10<br>;i++){</p>
+<pre><code>RunSafeCounter.
+</code></pre><p>safeCounter<br>();</p>
+<pre><code>System.
+</code></pre><p>out<br>.println(<br>safeCounter<br>.getCount());</p>
+<pre><code>    }
+
+} 
+</code></pre><p>catch<br>(InterruptedException e) {</p>
+<pre><code>        e.printStackTrace();
+
+    }
+
+}
+</code></pre><p>}<br><figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br><span class="line">而上面的代码在经过10*1000次循环过后获得结果是10000， 无论重复多少次都是。 并且也保证了线程的安全性。（PS： 在看完下面的内容过后判断SafeCounter中的Getter方法的 ```getCount```方法如果去掉 ```synchronized```修饰会不会还是一样的结果？ ）</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">---</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">##规范说明</span><br><span class="line">Java为多线程之间通信提供了非常多的机制，而其中， ```Synchronized```是最基础最简单的一个。在[JLS-17]( https://docs.oracle.com/javase/specs/jls/se7/html/jls-17.html)  对 ```Synchronized```的定义大概意思如下(ps为我加的备注，非原文)：</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">&gt; synchoronized使用监视器实现。 Java中每一个对象都和一个监视器关联，线程可以锁或则解锁监视器， 同一时间只有一个线程持有监视器的锁，其他任何想获取该监视器锁的线程都会被阻塞知道可以获得该锁（ps: 拥有锁的线程释放过后）。 一个线程可能对一个监视器```锁```多次（ps: 可重入），每一个```解锁```恢复一次锁操作（ps: 内部维护一个监视器锁的次数，每退出一个减少1直到为0就释放该监视器的锁）</span><br><span class="line">synchoronized块计算一个对象的引用，然后开始在对象的监视器上执行 ```锁``` 操作并且不继续向下执行直到 ```锁``` 操作成功后。然后 ， synchoronized块的内容开始执行。 如果块中的内容执行完成（不管是正常还是突然(ps: 被外部关闭之类)），在该监视器上就会自动执行 ```解锁```操作。</span><br><span class="line">synchoronized方法在调用它的时候自动执行 ```锁```操作。它的方法内容在成功获取到锁之前不会执行，如果是实例方法，它锁住了**调用它的实例的监视器（方法中的this）**，如果是静态方法，它锁住了 ** 定义这个方法的类的Class对象的监视器 ** ，  如果块中的内容执行完成（不管是正常还是突然(ps: 被外部关闭之类)），在该监视器上就会自动执行 ```解锁```操作。</span><br><span class="line"><span class="attribute">Java语言既不预防也不检查```死锁```（ps:这是程序员的事)</span></span><br><span class="line"><span class="attribute">其他机制，比如```volatile```的读和写或则```java.util.concurrent```包提供了其他的可替代的同步方式。</span></span><br><span class="line"><span class="attribute"></span></span><br><span class="line"><span class="attribute"></span></span><br><span class="line">[synchronized块]( https://docs.oracle.com/javase/specs/jls/se7/html/jls-14.html#jls-14.19 )：</span><br><span class="line">&gt; 一个synchronized块请求一个互斥锁，当拥有锁的线程在执行时，其他线程要获取这个锁必须等待。 它的语法如下：</span><br></pre></td></tr></table></figure></p>
+<pre><code>    SynchronizedStatement:
+
+        synchronized (Expression) Block
+
+<figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"> 表达式的类型必须为引用类型，否则编译期报错。该方法块 首先计算表达式的值，然后执行其中的代码。<span class="strong">** 如果计算表达式突然结束，那么代码块已同样的理由突然结束。 如果是null，就会抛出空指针异常。**</span>    否则，就获取到表达式值锁代表的对象的监视器的锁，然后开始执行同步代码块。 如果代码块正常退出，<span class="strong">**监视器就会被解锁然后 synchronized块也正常退出。 如果是已其他任何理由突然中断的话，监视器会被解锁并且同步代码块会已同样的方式结束。**</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">[<span class="string"> synchronized方法 </span>](<span class="link"> https://docs.oracle.com/javase/specs/jls/se7/html/jls-8.html#jls-8.4.3.6 </span>):</span><br><span class="line"><span class="quote">&gt; 一个 synchronized方法在运行之前会先请求一个监视器（的锁）。对于一个静态方法，该类的Class对象关联的监视器将被获取。 对于一个实例方法， ```this```所代表的实例的监视器将被获取。</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">同样，在JLS中也写清楚了每一个对象关联的监视器都有一个<span class="code">```</span>Wait Sets<span class="code">```</span>，显而易见的就是用来保存当前等待获取当前监视器锁的线程集合。该集合仅仅可以被<span class="code">```</span>Object.wait , Object.notify ,Object.notifyAll<span class="code">```</span>操纵。</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">---</span><br><span class="line"><span class="section">### synchoronized保证的互斥性与锁的对象</span></span><br><span class="line">当然，对于 synchoronized来讲，它的具体的规范可以阅读一下，但也没有必要在这里完全照搬过来。 在理解了上篇的Java内存模型并且仔细阅读了上面的JLS中synchoronized的定义过后，对于在程序中如何正确的使用其实应该有了个基本的概念。 我认为，使用 synchoronized, 最基本也是最重要的就是:</span><br><span class="line"><span class="bullet">- </span>你为什么需要用 synchoronized？</span><br><span class="line"><span class="bullet">- </span>你<span class="code">```</span>锁<span class="code">```</span>的究竟是哪个对象？</span><br><span class="line"><span class="bullet">- </span>为了做什么？</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">考虑如下代码：</span><br></pre></td></tr></table></figure>
+</code></pre><p>public class<br>SynchronizedCounter {</p>
+<p>private int<br>c<br>=<br>0<br>;</p>
+<p>public synchronized void<br>increment1() {</p>
+<p>c<br>++;</p>
+<pre><code>}
+</code></pre><p>public void<br>increment2() {</p>
+<p>synchronized<br>(<br>this<br>){</p>
+<p>c<br>++;</p>
+<pre><code>    }
+
+}
+</code></pre><p>}<br><figure class="highlight gcode"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">对于 i<span class="symbol">ncrement1</span>方法，它是一个同步方法，并且是实例方法。 根据上面的定义，该方法会获取调用该方法的实例的监视器的锁； 而对于 i<span class="symbol">ncrement2</span>，它是一个同步代码块，但获取一个对象的引用，然后尝试获取锁。 这里的引用是this,其实也就是该调用 i<span class="symbol">ncrement2</span>的实例。  所以说，  i<span class="symbol">ncrement1</span>和 i<span class="symbol">ncrement2</span>其实是做了完全一样的事情。</span><br><span class="line">代码:</span><br></pre></td></tr></table></figure></p>
+<p>class Test {<br>    int count;<br>    synchronized void bump() {<br>        count++;<br>    }<br>    static int classCount;<br>    static synchronized void classBump() {<br>        classCount++;<br>    }<br>}<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">与</span><br></pre></td></tr></table></figure></p>
+<p>class BumpTest {<br>    int count;<br>    void bump() {<br>        synchronized (this) { count++; }<br>    }<br>    static int classCount;<br>    static void classBump() {<br>        try {<br>            synchronized (Class.forName(“BumpTest”)) {<br>                classCount++;<br>            }<br>        } catch (ClassNotFoundException e) {}<br>    }<br>}<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">也是拥有相同的效果。</span><br><span class="line">在搞清楚锁的对象和时间周期过后，下面代码的安全性应该很容易看出来了：</span><br></pre></td></tr></table></figure></p>
+<p>public class<br>LockObjectTest {</p>
+<p>private static int<br>index<br>=<br>0<br>;</p>
+<p>public synchronized int<br>getAndIncrement1(){ //这个锁的是实例的监视器</p>
+<p>return<br>index<br>++;</p>
+<pre><code>}
+</code></pre><p>public static synchronized int<br>getAndIncrement2(){ //这个锁的是LockObjectTest类的Class对象<br>的监视器</p>
+<p>return<br>index<br>++;</p>
+<pre><code>}
+</code></pre><p>public static void<br>main(String[] args) {</p>
+<p>int<br>i=<br>0<br>;</p>
+<pre><code>List&lt;Thread&gt; threadList = 
+</code></pre><p>new<br>ArrayList&lt;&gt;(<br>1000<br>);</p>
+<pre><code>LockObjectTest lockObjectTest = 
+</code></pre><p>new<br>LockObjectTest();</p>
+<p>while<br>(i&lt;<br>10000<br>){</p>
+<pre><code>i++;
+
+threadList.add(
+</code></pre><p>new<br>Thread(<br>new<br>Runnable() {</p>
+<p>@Override</p>
+<p>public void<br>run() {</p>
+<p>lockObjectTest<br>.getAndIncrement1();</p>
+<pre><code>    }
+
+}));
+
+threadList.add(
+</code></pre><p>new<br>Thread(<br>new<br>Runnable() {</p>
+<p>@Override</p>
+<p>public void<br>run() {</p>
+<pre><code>LockObjectTest.
+</code></pre><p>getAndIncrement2<br>();</p>
+<pre><code>        }
+
+    }));
+
+}
+
+threadList.forEach(thread -&gt; thread.start());
+</code></pre><p>try<br>{</p>
+<p>for<br>(Thread thread : threadList){</p>
+<pre><code>        thread.join();
+
+    }
+
+} 
+</code></pre><p>catch<br>(InterruptedException e) {</p>
+<pre><code>    e.printStackTrace();
+
+}
+
+
+System.
+</code></pre><p>out<br>.println(LockObjectTest.<br>index<br>);</p>
+<pre><code>}
+</code></pre><p>}<br><figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">### synchoronized保证的内存可见性</span></span><br><span class="line"></span><br><span class="line"><span class="quote">&gt; 当线程A执行一个同步代码块过后，线程B进入同一个监视器锁的同步代码快的时候，所在线程A的操作（特别是对变量的改变）都保证可以被线程B看到（即不会因为重排序或则缓存之类的影响而看到错误的值）</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">内存可见性在单线程环境下从来没有出现过，因为这似乎就是一个智障问题：我前面给变量赋值了，后面肯定可以看到这个值。不然我们的代码岂不是问题重重？</span><br><span class="line">而在多线程环境下之所以会出现这个问题还是由于编译器、运行时、CPU共同作用的结果。</span><br><span class="line"><span class="bullet">- </span>编译器（不一定指javac，JIT）会对代码进行优化，一个非常常见的就是[<span class="string">编译器循环优化，知乎 RednaxelaFX 的一个回答 </span>](<span class="link"> https://www.zhihu.com/question/39458585/answer/81521474 </span>)。 编译器在编译的时候可能就已经改变了代码中的变量声明或则赋值顺序-只要保证了语义一致性。 R大已经解释的非常清楚。</span><br><span class="line"><span class="bullet">- </span>现代处理器的[<span class="string">乱序执行</span>](<span class="link"> https://en.wikipedia.org/wiki/Out-of-order_execution </span>)和CPU上越来越多的缓存（L1,L2,L3 cache）都使得你最终跑在CPU上的代码和你所写的出入较大。 多线程环境下尤其需要考虑这种影响。 比如下面的代码：</span><br></pre></td></tr></table></figure></p>
+<p>int arith ( int x , int y , int z ) {<br>  int t1 = x + y ;<br>  int t2 = z <em> 48 ;<br>  int t3 = t1 &amp; 0xFFFF ;<br>  int t4 = t2 </em> t3 ;<br>  return t4 ;<br>}</p>
+<figure class="highlight lsl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">由于t1和t2的赋值互不影响，所以他们的顺序完全可能已随机的次序跑在CPU上。</span><br><span class="line">而内存可见性其实也是这个道理。 当你的程序跑在同一个线程的时候，后面的代码读取之前对变量的更改都会是在同一个“核心”的寄存器或则缓存上。 而如果是多线程环境，假设某一个线程更改了某个变量，然后放到了它的寄存器上。 而另外一个线程此时来读取这个变量，它是会从内存中读取还是从这个 “核心” 的缓存中读取还是从这个 “核心”的寄存器上读取、又或则由于重排序这里的赋值还没有发生 是不能得到保证的。而唯一可以确定的是，它读取到的总会是某个线程在某个时间更改的数据，这被称为最低保证性(JMM规定了<span class="number">64</span>位的数值（double,long）可以分成<span class="number">2</span>个<span class="number">32</span>位的进行计算，也就是说这两种数据类型没有最低保证性。它们的数据完全可能是随机的)。</span><br><span class="line">如下代码：</span><br></pre></td></tr></table></figure>
+<p>public class<br>NoVisibility {</p>
+<p>private static boolean<br>ready<br>;</p>
+<p>private static int<br>number<br>;</p>
+<p>private static class<br>ReaderThread<br>extends<br>Thread {</p>
+<p>public void<br>run() {</p>
+<p>while<br>(!<br>ready<br>)</p>
+<pre><code>Thread.
+</code></pre><p>yield<br>();</p>
+<pre><code>System.
+</code></pre><p>out<br>.println(<br>number<br>);</p>
+<pre><code>    }
+
+}
+</code></pre><p>public static void<br>main(String[] args) {</p>
+<p>new<br>ReaderThread().start();</p>
+<p>number<br>=<br>42<br>;</p>
+<p>ready<br>=<br>true<br>;</p>
+<pre><code>}
+</code></pre><p>}<br><code>上面代码主线程和读线程访问共享变量</code>ready<code>和</code>number<code>，主线程开始读线程，然后把</code>number<code>设为42，把</code>ready<code>设置为</code>true<code>。 读线程等待ready为true后打印</code>number<code>. 但是这里，读线程可能会看到</code>number<code>是42也可能是0，或者说是永远不终止。主线程对于ready和number的写不能保证可以被其他线程看到。 
+***synchronized可以保证内存可见性 *** ，也就是使用了 synchronized关键字的方法或则语句都可以保证内存可见性（还有其他机制，如</code>volatile<code>）。具体的细节 并发编程网有一篇非常好的[文章]( http://ifeve.com/easy-happens-before/#more-8223)
+当线程A运行一个</code>synchronized<code>块，然后之后线程B进入同一个锁的</code>synchronized<code>块时，线程A释放锁之前可见的变量可以保证在线程B获取锁的时候可以看见。 换句话说，线程A做的事情线程B都知道。 而没有</code>synchronized<code>`</code>，则没有这样的保证。</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/并发/" rel="tag"># 并发</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/10/18/Java/Concurrent/Java并发基础（1）-内存模型杂序（JSR133 FAQ）/" rel="next" title="Java并发基础（1）-内存模型杂序（JSR133 FAQ）">
+                <i class="fa fa-chevron-left"></i> Java并发基础（1）-内存模型杂序（JSR133 FAQ）
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/05/04/Java/Concurrent/Java并发基础（4）- CAS/" rel="prev" title="Java并发基础（4）- CAS">
+                Java并发基础（4）- CAS <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">cupofish@gmail.com</p>
+              <div class="site-description motion-element" itemprop="description"></div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">42</span>
+                    <span class="site-state-item-name">posts</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">23</span>
+                    <span class="site-state-item-name">categories</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">27</span>
+                    <span class="site-state-item-name">tags</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  
+                  
+                    
+                  
+                  
+                    
+                  
+                  <a href="https://github.com/anguslean" title="GitHub &rarr; https://github.com/anguslean" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+            </div>
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+
+      
+
+    </div>
+  </aside>
+  
+    <div id="sidebar-dimmer"></div>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2021</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">cupofish@gmail.com</span>
+
+  
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.0"></script>
+
+  <script src="/js/motion.js?v=7.1.0"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/affix.js?v=7.1.0"></script>
+
+  <script src="/js/schemes/pisces.js?v=7.1.0"></script>
+
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.0"></script>
+<script src="/js/post-details.js?v=7.1.0"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.0"></script>
+
+
+  
+
+  
+
+  
+
+  
+  
+
+<script>
+  var disqus_config = function() {
+    this.page.url = "http://www.anguslean.cn/2017/04/17/Java/Concurrent/Java并发基础（2）-Synchronized/";
+    this.page.identifier = "2017/04/17/Java/Concurrent/Java并发基础（2）-Synchronized/";
+    this.page.title = 'Java并发基础（2）-Synchronized';
+    };
+  function loadComments() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://anguslean.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', '' + +new Date());
+    (d.head || d.body).appendChild(s);
+  }
+  
+    $(function() {
+      var offsetTop = $('#comments').offset().top - $(window).height();
+      if (offsetTop <= 0) {
+        // load directly when there's no a scrollbar
+        loadComments();
+      } else {
+        $(window).on('scroll.disqus_scroll', function() {
+          // offsetTop may changes because of manually resizing browser window or lazy loading images.
+          var offsetTop = $('#comments').offset().top - $(window).height();
+          var scrollTop = $(window).scrollTop();
+
+          // pre-load comments a bit? (margin or anything else)
+          if (offsetTop - scrollTop < 60) {
+            $(window).off('.disqus_scroll');
+            loadComments();
+          }
+        });
+      }
+    });
+  
+</script>
+
+
+
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

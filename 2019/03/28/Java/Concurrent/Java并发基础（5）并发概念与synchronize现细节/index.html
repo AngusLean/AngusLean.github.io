@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang>
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.0" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.1.0',
+    sidebar: {"position":"left","display":"always","offset":12,"onmobile":false,"dimmer":true},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="在Java并发基础（2）-Synchronized一文里对synchronized关键字的使用细节上做了一个比较详细的说明，那么这个“强大”的关键字是如何实现的呢？">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Java并发基础（5）并发概念与synchronized现细节">
+<meta property="og:url" content="http://www.anguslean.cn/2019/03/28/Java/Concurrent/Java并发基础（5）并发概念与synchronize现细节/index.html">
+<meta property="og:site_name" content="AngusLean Blog">
+<meta property="og:description" content="在Java并发基础（2）-Synchronized一文里对synchronized关键字的使用细节上做了一个比较详细的说明，那么这个“强大”的关键字是如何实现的呢？">
+<meta property="og:locale" content="default">
+<meta property="og:image" content="https://www.hollischuang.com/wp-content/uploads/2018/02/lockenter.png">
+<meta property="og:updated_time" content="2019-03-27T16:00:00.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Java并发基础（5）并发概念与synchronized现细节">
+<meta name="twitter:description" content="在Java并发基础（2）-Synchronized一文里对synchronized关键字的使用细节上做了一个比较详细的说明，那么这个“强大”的关键字是如何实现的呢？">
+<meta name="twitter:image" content="https://www.hollischuang.com/wp-content/uploads/2018/02/lockenter.png">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.anguslean.cn/2019/03/28/Java/Concurrent/Java并发基础（5）并发概念与synchronize现细节/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Java并发基础（5）并发概念与synchronized现细节 | AngusLean Blog</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="default">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">AngusLean Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>Home</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>Categories</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>Archives</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>Tags</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>About</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.anguslean.cn/2019/03/28/Java/Concurrent/Java并发基础（5）并发概念与synchronize现细节/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="cupofish@gmail.com">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="AngusLean Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">Java并发基础（5）并发概念与synchronized现细节
+
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2019-03-28 00:00:00" itemprop="dateCreated datePublished" datetime="2019-03-28T00:00:00+08:00">2019-03-28</time>
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Programming-Language/" itemprop="url" rel="index"><span itemprop="name">Programming Language</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Programming-Language/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Programming-Language/Java/并发/" itemprop="url" rel="index"><span itemprop="name">并发</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>在<a href="http://anguslean.cn/2017/04/17/Java/Concurrent/Java%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80%EF%BC%882%EF%BC%89-Synchronized/" target="_blank" rel="noopener">Java并发基础（2）-Synchronized</a>一文里对<code>synchronized</code>关键字的使用细节上做了一个比较详细的说明，那么这个“强大”的关键字是如何实现的呢？</p>
+<a id="more"></a>
+<h2 id="并发的几个基本问题"><a href="#并发的几个基本问题" class="headerlink" title="并发的几个基本问题"></a>并发的几个基本问题</h2><p>在具体说<code>synchronized</code>的实现之前，必须对它所解决的问题有个基本的概念：<br>在多线程环境中，并发上的问题在编译器、JIT、操作系统、CPU(乱序执行、多核)的共同作用下变得较为复杂。但是归根结底，其实是以下几个问题：</p>
+<h3 id="可见性"><a href="#可见性" class="headerlink" title="可见性"></a>可见性</h3><p>可见性指的是，某线程对某个内存区域的更改对于其他线程是否可见的问题。具体来说，在CPU的层次，某个核心上具体线程对某个内存位置的更改可能仅仅是刷新到L2/L1缓存上而没有实际的刷新到内存上去，同时，其他几个核心自己内部的缓存可能对该内存位置也有相应的缓存数据，<strong>当某个线程对内存区域的某个变量做了更改，如何保证其他所有线程（CPU核心）都知道并且可以看见这个最新值</strong></p>
+<h3 id="并发写-并发读"><a href="#并发写-并发读" class="headerlink" title="并发写/并发读"></a>并发写/并发读</h3><p>这个问题其实与上面的如出一辙，多个线程同时对某个内存区域做更改，那么该内存区域最后的值是什么？ 取最后到达的还是什么策略？ 而每个线程看到的是本线程的更改结果还是内存位置的实际值？<br>解决方案很简单- 不允许<strong>同时</strong>写，一个线程在做可能与其他线程互相冲突的操作时其他线程必须<strong>回避</strong>（也就是互斥）,保证”同一时刻”只有一个线程在做这个操作。</p>
+<h3 id="顺序性（reordering）"><a href="#顺序性（reordering）" class="headerlink" title="顺序性（reordering）"></a>顺序性（<code>reordering</code>）</h3><p>现代CPU几乎都有强大的乱序执行功能，对于某些指令序列通过一系列的分析，可以<strong>推断出可以乱序执行</strong>-也就是代码里看到的顺序逻辑实际上被“同时执行”，这个同时执行既可能是CPU的时间片上的逻辑执行也可能是分配到不同核心山的执行。 CPU保证这些指令被同时执行不改变指令的原有语义， 这个特性很大程度上提高了指令的执行效率，在单线程时代也没有任何问题。<br>但对于多线程就可能有问题了，在单线程里前后没有依赖关系的代码多线程环境下就可能有问题。</p>
+<h2 id="操作系统的方案"><a href="#操作系统的方案" class="headerlink" title="操作系统的方案"></a>操作系统的方案</h2><p>对于互斥性问题，本质上是要求“某一段代码”同一时间只有一个线程在执行， 也被称为“临界区(<code>critical section</code>)”。满足临界区的方案会有以下几个特点：</p>
+<ul>
+<li>不会同时有超过1个线程处于临界区</li>
+<li>不对CPU速度和数量（包括虚拟的核心）做任何假设</li>
+<li>临界区外的进程互补阻塞</li>
+<li>进程不能无限期的等待临界区</li>
+</ul>
+<p>在操作系统上，实现临界区通常有几种方式：</p>
+<h3 id="屏蔽中断"><a href="#屏蔽中断" class="headerlink" title="屏蔽中断"></a>屏蔽中断</h3><p>在单处理器系统中，最简单的办法是进入临界区过后立马屏蔽所有的中断，离开之前再打开， 屏蔽过后，时钟中断也被屏蔽，这样CPU就不会被切换到其他线程。<br>但是现代处理器不可能只有一个核心，而屏蔽中断只对调用中断的这个核心有效，其他CPU仍可以继续运行和访问共享内存，所以实质上这个方案不合理，也没有被大量使用</p>
+<h3 id="软件模拟-锁变量"><a href="#软件模拟-锁变量" class="headerlink" title="软件模拟-锁变量"></a>软件模拟-锁变量</h3><p>考虑有一个共享变量（锁变量）存在，它的初始值为0. 线程在进入临界区之前检查这个值是否为0，如果是则讲它设为1并且进入临界区，否则等待直到该值变为0.<br>该方案的问题是，如果一个进程再发现它的值为0，在把它设为1之前有另外一个线程进入了临界区也把它设为了1，当第一个进程运行时它也把它设为1. 这样就会有两个线程同时处于临界区。</p>
+<h3 id="软件模拟-自旋锁"><a href="#软件模拟-自旋锁" class="headerlink" title="软件模拟-自旋锁"></a>软件模拟-自旋锁</h3><p>使用一个变量turn,来标识哪个线程进入临界区并检查和更新共享内存。<br><figure class="highlight arduino"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//线程1</span></span><br><span class="line"><span class="keyword">while</span>(<span class="literal">true</span>)&#123;</span><br><span class="line">    <span class="keyword">while</span>(<span class="built_in">turn</span> != <span class="number">0</span>); <span class="comment">//忙等待</span></span><br><span class="line">    critical_region(); <span class="comment">//临界区逻辑</span></span><br><span class="line">    <span class="built_in">turn</span> = <span class="number">1</span>; <span class="comment">//切换到下一个线程</span></span><br><span class="line">    noncritical_region(); <span class="comment">//非临界区逻辑</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//线程2</span></span><br><span class="line"><span class="keyword">while</span>(<span class="literal">true</span>)&#123;</span><br><span class="line">    <span class="keyword">while</span>(<span class="built_in">turn</span> != <span class="number">1</span>); <span class="comment">//忙等待</span></span><br><span class="line">    critical_region(); <span class="comment">//临界区逻辑</span></span><br><span class="line">    <span class="built_in">turn</span> = <span class="number">0</span>; <span class="comment">//切换到下一个线程</span></span><br><span class="line">    noncritical_region(); <span class="comment">//非临界区逻辑</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>自旋的方案对于竞争不太激烈的情况和线程之前速度相差不大的来说比较合适，否则对于资源的浪费和等待时间是不可控的。同时，非临界区的代码实质上也是被临界区的代码（即使是其他线程）给阻塞了</p>
+<h3 id="Peterson解法"><a href="#Peterson解法" class="headerlink" title="Peterson解法"></a><em>Peterson</em>解法</h3><p>该方法不做过多介绍，可以自行查阅下</p>
+<h3 id="TSL指令-硬件方法"><a href="#TSL指令-硬件方法" class="headerlink" title="TSL指令-硬件方法"></a><code>TSL</code>指令-硬件方法</h3><p>这是一个具备原子性的硬件指令-测试并加锁(<code>test and set lock</code>),它将一个内存字lock读到寄存器RX中，然后在该内存地址存一个非0值。 读和写不可分割，即它们是原子性的，该指令结束之前其他处理器均不允许访问该内存字。执行TSL的CPU将锁住内存总线已禁止其他CPU在期间访问该内存。<br>注意的是锁住总线不同于中断，它是可以锁住其他CPU的。这是非常不同于方案1的一点。<br>该方案使用共享变量lock来协调进入临界区，当lock为0时，任何进程都都可以使用<code>TSL</code>把lock设为1并读写共享内存，当操作结束时再把lock设为1。对于临界区则是：</p>
+<ol>
+<li>将lock原来的值复制到寄存器中并设为1</li>
+<li>比较寄存器中的值是否是原来的值(0)，如果不是则说明以前已经被加过锁了则回到开始重新执行</li>
+<li>如果是0，则说明加锁成功，进入临界区成功</li>
+<li>清楚这个锁只需要把这个值为0即可</li>
+</ol>
+<figure class="highlight delphi"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">enter_region:</span><br><span class="line">    TSL <span class="keyword">REGISTER</span>,LOCK  <span class="comment">//读取并设为1</span></span><br><span class="line">    CMP <span class="keyword">REGISTER</span>, <span class="string">#0</span> <span class="comment">//测试是否已经被锁</span></span><br><span class="line">    JNE enter_region <span class="comment">//循环</span></span><br><span class="line">    RET <span class="comment">//进入临界区成功</span></span><br></pre></td></tr></table></figure>
+<p>在<code>intel x86</code>CPU中底层使用的是<code>XCHG</code>指令，但同上并无实际区别。该方案较为完整</p>
+<p> 这个方式同上面几种方式一样，都是在无法进入临界区的时候采用<strong>忙等待</strong>的方式。这种方法不仅浪费了了CPU时间还可能因为进程优先级的问题导致出现<a href="https://baike.baidu.com/item/%E4%BC%98%E5%85%88%E7%BA%A7%E7%BF%BB%E8%BD%AC/4945202?fr=aladdin" target="_blank" rel="noopener">优先级反转问题</a>. 另外一种进程间同步的方式则是在无法进入临界区时阻塞。直到另外的线程把它唤醒</p>
+<p>###</p>
+<h2 id="JVM的方案"><a href="#JVM的方案" class="headerlink" title="JVM的方案"></a>JVM的方案</h2><p>首先上述的并发上的问题在计算机科学中早已出现，并且有了一系列的成熟的解决方案。JVM在这方面并无太多的实质上创新机制，但由于虚拟机平台的存在，还是相较于传统的C/C++等语言在语法糖上提供了更甜的特性。其中的典型便是<code>synchronize</code>关键字和<code>JUC</code>包里的<code>AQS</code>类。<br><code>synchronize</code>关键字实质上是一种互斥锁：即任何时刻只有一个线程可以执行这段代码，它提供了如下几个保障:</p>
+<ul>
+<li>可见性</li>
+<li>互斥性</li>
+<li>禁止重排序</li>
+</ul>
+<p>JVM规范里对于实现互斥访问提供了<code>monitor</code>抽象，当一段代码进入临界区时它在某个对象上调用<code>monitorenter</code>,退出时调用<code>monitorexit</code>。  <code>monitor</code>同时还保证了拥有该<code>monitor</code>的线程可以多次重入(通过一个计数器实现)。而<code>monitor</code>是什么呢？</p>
+<h3 id="monitor"><a href="#monitor" class="headerlink" title="monitor"></a><code>monitor</code></h3><h4 id="操作系统层次的管程"><a href="#操作系统层次的管程" class="headerlink" title="操作系统层次的管程"></a>操作系统层次的管程</h4><p><a href="https://zh.wikipedia.org/wiki/%E7%9B%A3%E8%A6%96%E5%99%A8_(%E7%A8%8B%E5%BA%8F%E5%90%8C%E6%AD%A5%E5%8C%96" target="_blank" rel="noopener"><code>monitor</code>-wikipedia</a>):</p>
+<blockquote>
+<p>管程 (英语：Monitors，也称为监视器) 是一种程序结构，结构内的多个子程序（对象或模块）形成的多个工作线程互斥访问共享资源。这些共享资源一般是硬件设备或一群变量。管程实现了在一个时间点，最多只有一个线程在执行管程的某个子程序。与那些通过修改数据结构实现互斥访问的并发程序设计相比，管程实现很大程度上简化了程序设计。 管程提供了一种机制，线程可以临时放弃互斥访问，等待某些条件得到满足后，重新获得执行权恢复它的互斥访问</p>
+</blockquote>
+<p>由上面的介绍我们看到，监视器其实就是一种较为特殊的字程序，它通过某些手段保证了同一段代码同一个时间节点最多只有一个线程在执行。而在JVM中，则更进一步的增加了重入机制。 下面我们看下具体的实现：</p>
+<h4 id="JVM里monitor的实现"><a href="#JVM里monitor的实现" class="headerlink" title="JVM里monitor的实现"></a><code>JVM</code>里<code>monitor</code>的实现</h4><p>HotSpot的monitor实现类<a href="https://github.com/JetBrains/jdk8u_hotspot/blob/master/src/share/vm/runtime/objectMonitor.cpp" target="_blank" rel="noopener"><code>HotSpot JVM8 monitor</code></a>的基本结构如下：<br><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">ObjectMonitor()</span> <span class="string">&#123;</span></span><br><span class="line">  <span class="string">_header</span> <span class="string">=</span> <span class="literal">NULL</span><span class="string">;</span></span><br><span class="line">  <span class="string">_count</span> <span class="string">=</span> <span class="number">0</span><span class="string">;</span></span><br><span class="line">  <span class="string">_waiters</span> <span class="string">=</span> <span class="number">0</span><span class="string">,</span></span><br><span class="line">  <span class="string">_recursions</span> <span class="string">=</span> <span class="number">0</span><span class="string">;</span>  <span class="string">//重入次数</span></span><br><span class="line">  <span class="string">_object</span> <span class="string">=</span> <span class="literal">NULL</span><span class="string">;</span></span><br><span class="line">  <span class="string">_owner</span> <span class="string">=</span> <span class="literal">NULL</span><span class="string">;</span>  <span class="string">//当前monitor的拥有者</span></span><br><span class="line">  <span class="string">_WaitSet</span> <span class="string">=</span> <span class="literal">NULL</span><span class="string">;</span>  <span class="string">//处于Wait状态的等待队列</span></span><br><span class="line">  <span class="string">_WaitSetLock</span> <span class="string">=</span> <span class="number">0</span> <span class="string">;</span></span><br><span class="line">  <span class="string">_Responsible</span> <span class="string">=</span> <span class="literal">NULL</span> <span class="string">;</span></span><br><span class="line">  <span class="string">_succ</span> <span class="string">=</span> <span class="literal">NULL</span> <span class="string">;</span></span><br><span class="line">  <span class="string">_cxq</span> <span class="string">=</span> <span class="literal">NULL</span> <span class="string">;</span></span><br><span class="line">  <span class="string">_EntryList</span> <span class="string">=</span> <span class="literal">NULL</span> <span class="string">;</span></span><br><span class="line">  <span class="string">_SpinFreq</span> <span class="string">=</span> <span class="number">0</span> <span class="string">;</span></span><br><span class="line">  <span class="string">_SpinClock</span> <span class="string">=</span> <span class="number">0</span> <span class="string">;</span></span><br><span class="line">  <span class="string">OwnerIsThread</span> <span class="string">=</span> <span class="number">0</span> <span class="string">;</span></span><br><span class="line"><span class="string">&#125;</span></span><br></pre></td></tr></table></figure></p>
+<p>线程通过CAS把<code>owner</code>字段由<code>null</code>变为非<code>null</code>表明拥有了monitor的所有权。当一个线程尝试进入监视器时，主要会经过如下的步骤:</p>
+<ul>
+<li><p>通过CAS把当前线程设为monirotr的拥有者，成功则返回</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">cur = Atomic::cmpxchg_ptr (Self, &amp;_owner, NULL) <span class="comment">;</span></span><br><span class="line">if (cur == NULL) &#123;</span><br><span class="line"> return <span class="comment">;</span></span><br><span class="line">&#125;</span><br><span class="line">// static intptr_t cmpxchg_ptr(intptr_t exchange_value, volatile intptr_t* dest, intptr_t compare_value)<span class="comment">;</span></span><br><span class="line">// static void* cmpxchg_ptr(void* exchange_value, volatile void* dest, void* compare_value)<span class="comment">;</span></span><br><span class="line">//Windows下一种实现是:</span><br><span class="line">inline jint Atomic::<span class="keyword">cmpxchg</span> (jint exchange_value, volatile jint* dest, jint compare_value) &#123;</span><br><span class="line">  <span class="keyword">int</span> mp = os::is_MP()<span class="comment">; //查看是否是多核</span></span><br><span class="line">  __asm &#123;</span><br><span class="line">    <span class="keyword">mov</span> <span class="built_in">edx</span>, dest</span><br><span class="line">    <span class="keyword">mov</span> <span class="built_in">ecx</span>, exchange_value</span><br><span class="line">    <span class="keyword">mov</span> <span class="built_in">eax</span>, compare_value</span><br><span class="line">    LOCK_IF_MP(mp)</span><br><span class="line">    //可以看到这个指令类似上面我们介绍的<span class="keyword">xchg</span>指令</span><br><span class="line">    <span class="keyword">cmpxchg</span> <span class="built_in">dword</span> <span class="built_in">ptr</span> [<span class="built_in">edx</span>], <span class="built_in">ecx</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>如果<code>monitor</code>当前已经被锁定且拥有者是当前线程，则是<strong>重入锁</strong>,则累加重入次数:</p>
+<figure class="highlight gauss"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (cur == Self) &#123;</span><br><span class="line">    <span class="comment">//这里有个整数溢出的bug</span></span><br><span class="line">    _recursions ++ ;</span><br><span class="line">    <span class="keyword">return</span> ;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>如果当前线程是第一次进入，则设置<code>_recursions</code>为1，<code>_owner</code>为当前线程</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 如果当前线程是第一次进入该monitor，设置_recursions为1，_owner为当前线程</span></span><br><span class="line"><span class="keyword">if</span> (<span class="keyword">Self</span>-&gt;is_lock_owned ((address)cur)) &#123;</span><br><span class="line">    _recursions = <span class="number">1</span> ;</span><br><span class="line">    _owner = <span class="keyword">Self</span> ;</span><br><span class="line">    OwnerIsThread = <span class="number">1</span> ;</span><br><span class="line">    <span class="keyword">return</span> ;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>如果不是，那么则表明当前<code>monitor</code>被其他线程锁定，则通过自旋等待锁的释放</p>
+<figure class="highlight awk"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (;;) &#123;</span><br><span class="line">  jt-&gt;set_suspend_equivalent();</span><br><span class="line">  <span class="regexp">//</span> cleared by handle_special_suspend_equivalent_condition()</span><br><span class="line">  <span class="regexp">//</span> or java_suspend_self()</span><br><span class="line">  EnterI (THREAD) ;</span><br><span class="line">  <span class="keyword">if</span> (!ExitSuspendEquivalent(jt)) <span class="keyword">break</span> ;</span><br><span class="line">  _recursions = <span class="number">0</span> ;</span><br><span class="line">  _succ = NULL ;</span><br><span class="line">  <span class="keyword">exit</span> (false, Self) ;</span><br><span class="line">  jt-&gt;java_suspend_self();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>可以看到上面一个重要的方法是<code>EnterI</code>,这个方法的代码很长,核心其实就是要么自旋CAS要么<code>Park</code>，简要的逻辑如下<br><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment">// 首先还是尝试获取锁一次。这个tryLock方法就是前面提到的对Atomic::cmpxchg_ptr的一次调用</span></span><br><span class="line"><span class="keyword">if</span> (TryLock (<span class="keyword">Self</span>) &gt; <span class="number">0</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> ;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">//调用一个带一定延时的，自旋的方式再次尝试获取锁（该优化可能需要对虚拟机实现非常了解才能知其所以然）</span></span><br><span class="line"><span class="keyword">if</span> (TrySpin (<span class="keyword">Self</span>) &gt; <span class="number">0</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> ;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//把当前线程包装程ObjectWaiter，并尝试CAS插入到`_cxq`列表的前面.一但插入成功，除非获得锁否则</span></span><br><span class="line"><span class="comment">//始终在这个队列里</span></span><br><span class="line">ObjectWaiter node(<span class="keyword">Self</span>) ;</span><br><span class="line"><span class="keyword">Self</span>-&gt;_ParkEvent-&gt;reset() ;</span><br><span class="line">node._prev = (ObjectWaiter *) <span class="number">0xBAD</span> ;</span><br><span class="line">node.TState = ObjectWaiter::TS_CXQ ;</span><br><span class="line">ObjectWaiter * nxt ;</span><br><span class="line"><span class="keyword">for</span> (;;) &#123;</span><br><span class="line">    node._next = nxt = _cxq ;</span><br><span class="line">    <span class="keyword">if</span> (Atomic::cmpxchg_ptr (&amp;node, &amp;_cxq, nxt) == nxt) <span class="keyword">break</span> ;</span><br><span class="line">    <span class="comment">//入队成功，尝试获取下</span></span><br><span class="line">    <span class="keyword">if</span> (TryLock (<span class="keyword">Self</span>) &gt; <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> ;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">for</span> (;;) &#123;</span><br><span class="line">   <span class="keyword">if</span> ((SyncFlags &amp; <span class="number">2</span>) &amp;&amp; _Responsible == <span class="keyword">NULL</span>) &#123;</span><br><span class="line">       Atomic::cmpxchg_ptr (<span class="keyword">Self</span>, &amp;_Responsible, <span class="keyword">NULL</span>) ;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// park self</span></span><br><span class="line">    <span class="keyword">if</span> (_Responsible == <span class="keyword">Self</span> || (SyncFlags &amp; <span class="number">1</span>)) &#123;</span><br><span class="line">        TEVENT (Inflated enter - park TIMED) ;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">Self</span>-&gt;_ParkEvent-&gt;park ((jlong) RecheckInterval) ;</span><br><span class="line">        RecheckInterval *= <span class="number">8</span> ;</span><br><span class="line">        <span class="keyword">if</span> (RecheckInterval &gt; <span class="number">1000</span>) RecheckInterval = <span class="number">1000</span> ;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        TEVENT (Inflated enter - park UNTIMED) ;</span><br><span class="line"> <span class="comment">//由于上面的尝试获取锁还是失败了，睡眠当前线程等待被唤醒</span></span><br><span class="line">        <span class="keyword">Self</span>-&gt;_ParkEvent-&gt;park() ;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//到这里实际上是被唤醒了，再次尝试</span></span><br><span class="line">    <span class="keyword">if</span> (TryLock(<span class="keyword">Self</span>) &gt; <span class="number">0</span>) <span class="keyword">break</span> ;</span><br><span class="line">    <span class="comment">//后面还有类似的自旋和fence之类的操作，不细述</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>到这里，可以看到<code>monitor</code>实际上是通过自旋或者<code>park</code>来保证对资源的互斥性访问。一个简单的流程图:<br><img src="https://www.hollischuang.com/wp-content/uploads/2018/02/lockenter.png" alt><br><code>monitorenter</code>指令申请当前栈上对象的锁，如果已经被当前线程获取则递增内部的一次计数器，否则等待。当内部计数器为0时则释放锁。而对于被锁住的块，Java编译器保证退出这部分代码块时会释放锁（即使说中间有未捕获的异常）</p>
+<h3 id="synchronized的实现"><a href="#synchronized的实现" class="headerlink" title="synchronized的实现"></a><code>synchronized</code>的实现</h3><p>上面我们说到<code>monitor</code>，这是JVM规范里定义的一种互斥性实现手段，而对于<code>synchronized</code>关键字，其实并不是直接调用监视器的，在JDK1.6之后对它的实现进行了一系列优化。具体如下：</p>
+<ol>
+<li>仅仅是同步代码块才会生成<code>monitorenter</code>和<code>monitorexit</code>指令。<br>对于同步方法，JVM不会生成任何特殊指令。当JVM调用一个方法时，它会自动判断方法是不是同步(<code>synchronized</code>)的，如果是，JVM在调用这个方法之前就申请获得锁。这里，被锁的对象就是当前的“作用域”，对于实例方法，就是当前实例对象；对于静态方法，就是对应的<code>Class</code>对象。当一个同步方法返回时，不管是正常还是异常，锁都会被释放。</li>
+<li>对于自动生成的获取锁代码，进行了几步优化已尽量避免进入性能影响相对较大的锁：</li>
+</ol>
+<ul>
+<li>引入偏向锁<br>通过CAS设置对象头中JavaThread为当前线程id,成功则获取到锁。失败则等待到达全局安全点(safepoint)，撤销偏向锁，进入轻量级锁</li>
+<li>轻量级锁<br>适用于多线程交替执行同步快，如果竞争激烈，则会进入重量级锁。</li>
+<li>重量级锁<br>也就是上面提到的<code>monitor</code>的实现</li>
+</ul>
+<p>这里具体的逻辑可以参考:</p>
+<ul>
+<li><a href="https://www.jianshu.com/p/c5058b6fe8e5" target="_blank" rel="noopener">简书的一篇关于解释执行文章</a></li>
+<li><a href="https://wiki.openjdk.java.net/display/HotSpot/Synchronization" target="_blank" rel="noopener"><strong>hotspot官方的一篇文章</strong></a>, 这篇可以认真读下</li>
+<li><a href="https://pdfs.semanticscholar.org/1381/b7f3aebb605ebf00b7ff9158fae8d55b4e6e.pdf" target="_blank" rel="noopener">hotspot的论文</a></li>
+</ul>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/06/01/Java/JVM/从String对象查看Java对象内存布局情况/" rel="next" title="从String对象查看Java对象内存布局情况">
+                <i class="fa fa-chevron-left"></i> 从String对象查看Java对象内存布局情况
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/04/04/Java/Framework/Spring/RestTemplate对于响应的处理解析/" rel="prev" title="RestTemplate踩坑记录">
+                RestTemplate踩坑记录 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">cupofish@gmail.com</p>
+              <div class="site-description motion-element" itemprop="description"></div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">42</span>
+                    <span class="site-state-item-name">posts</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">23</span>
+                    <span class="site-state-item-name">categories</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">27</span>
+                    <span class="site-state-item-name">tags</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  
+                  
+                    
+                  
+                  
+                    
+                  
+                  <a href="https://github.com/anguslean" title="GitHub &rarr; https://github.com/anguslean" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+            </div>
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#并发的几个基本问题"><span class="nav-number">1.</span> <span class="nav-text">并发的几个基本问题</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#可见性"><span class="nav-number">1.1.</span> <span class="nav-text">可见性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#并发写-并发读"><span class="nav-number">1.2.</span> <span class="nav-text">并发写/并发读</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#顺序性（reordering）"><span class="nav-number">1.3.</span> <span class="nav-text">顺序性（reordering）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#操作系统的方案"><span class="nav-number">2.</span> <span class="nav-text">操作系统的方案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#屏蔽中断"><span class="nav-number">2.1.</span> <span class="nav-text">屏蔽中断</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#软件模拟-锁变量"><span class="nav-number">2.2.</span> <span class="nav-text">软件模拟-锁变量</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#软件模拟-自旋锁"><span class="nav-number">2.3.</span> <span class="nav-text">软件模拟-自旋锁</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Peterson解法"><span class="nav-number">2.4.</span> <span class="nav-text">Peterson解法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#TSL指令-硬件方法"><span class="nav-number">2.5.</span> <span class="nav-text">TSL指令-硬件方法</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#JVM的方案"><span class="nav-number">3.</span> <span class="nav-text">JVM的方案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#monitor"><span class="nav-number">3.1.</span> <span class="nav-text">monitor</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#操作系统层次的管程"><span class="nav-number">3.1.1.</span> <span class="nav-text">操作系统层次的管程</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#JVM里monitor的实现"><span class="nav-number">3.1.2.</span> <span class="nav-text">JVM里monitor的实现</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#synchronized的实现"><span class="nav-number">3.2.</span> <span class="nav-text">synchronized的实现</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+    <div id="sidebar-dimmer"></div>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2021</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">cupofish@gmail.com</span>
+
+  
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.0"></script>
+
+  <script src="/js/motion.js?v=7.1.0"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/affix.js?v=7.1.0"></script>
+
+  <script src="/js/schemes/pisces.js?v=7.1.0"></script>
+
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.0"></script>
+<script src="/js/post-details.js?v=7.1.0"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.0"></script>
+
+
+  
+
+  
+
+  
+
+  
+  
+
+<script>
+  var disqus_config = function() {
+    this.page.url = "http://www.anguslean.cn/2019/03/28/Java/Concurrent/Java并发基础（5）并发概念与synchronize现细节/";
+    this.page.identifier = "2019/03/28/Java/Concurrent/Java并发基础（5）并发概念与synchronize现细节/";
+    this.page.title = 'Java并发基础（5）并发概念与synchronized现细节';
+    };
+  function loadComments() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://anguslean.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', '' + +new Date());
+    (d.head || d.body).appendChild(s);
+  }
+  
+    $(function() {
+      var offsetTop = $('#comments').offset().top - $(window).height();
+      if (offsetTop <= 0) {
+        // load directly when there's no a scrollbar
+        loadComments();
+      } else {
+        $(window).on('scroll.disqus_scroll', function() {
+          // offsetTop may changes because of manually resizing browser window or lazy loading images.
+          var offsetTop = $('#comments').offset().top - $(window).height();
+          var scrollTop = $(window).scrollTop();
+
+          // pre-load comments a bit? (margin or anything else)
+          if (offsetTop - scrollTop < 60) {
+            $(window).off('.disqus_scroll');
+            loadComments();
+          }
+        });
+      }
+    });
+  
+</script>
+
+
+
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

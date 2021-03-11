@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang>
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.0" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.1.0',
+    sidebar: {"position":"left","display":"always","offset":12,"onmobile":false,"dimmer":true},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="本文将对存储引擎的常用实现方式做个大概的介绍，目的首要是尝试去“理清”各个数据库系统在选择底层数据结构时的各种考量和优劣势，同时，也是为了更好的对各种“层出不穷”的数据库和缓存系统作一个“由底至上”的了解。">
+<meta name="keywords" content="Redis,MySQL,Database">
+<meta property="og:type" content="article">
+<meta property="og:title" content="存储引擎简述(Todo)">
+<meta property="og:url" content="http://www.anguslean.cn/2020/03/15/Database/存储引擎简述/index.html">
+<meta property="og:site_name" content="AngusLean Blog">
+<meta property="og:description" content="本文将对存储引擎的常用实现方式做个大概的介绍，目的首要是尝试去“理清”各个数据库系统在选择底层数据结构时的各种考量和优劣势，同时，也是为了更好的对各种“层出不穷”的数据库和缓存系统作一个“由底至上”的了解。">
+<meta property="og:locale" content="default">
+<meta property="og:updated_time" content="2020-03-15T16:00:00.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="存储引擎简述(Todo)">
+<meta name="twitter:description" content="本文将对存储引擎的常用实现方式做个大概的介绍，目的首要是尝试去“理清”各个数据库系统在选择底层数据结构时的各种考量和优劣势，同时，也是为了更好的对各种“层出不穷”的数据库和缓存系统作一个“由底至上”的了解。">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.anguslean.cn/2020/03/15/Database/存储引擎简述/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>存储引擎简述(Todo) | AngusLean Blog</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="default">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">AngusLean Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>Home</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>Categories</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>Archives</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>Tags</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>About</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.anguslean.cn/2020/03/15/Database/存储引擎简述/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="cupofish@gmail.com">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="AngusLean Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">存储引擎简述(Todo)
+
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2020-03-15 00:00:00" itemprop="dateCreated datePublished" datetime="2020-03-15T00:00:00+08:00">2020-03-15</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2020-03-16 00:00:00" itemprop="dateModified" datetime="2020-03-16T00:00:00+08:00">2020-03-16</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/数据库/" itemprop="url" rel="index"><span itemprop="name">数据库</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>本文将对存储引擎的常用实现方式做个大概的介绍，目的首要是尝试去“理清”各个数据库系统在选择底层数据结构时的各种考量和优劣势，同时，也是为了更好的对各种“层出不穷”的数据库和缓存系统作一个“由底至上”的了解。</p>
+<a id="more"></a>
+<h2 id="Why存储引擎"><a href="#Why存储引擎" class="headerlink" title="Why存储引擎"></a><code>Why</code>存储引擎</h2><p>  在计算机科学领域中，数据的存储和查询是经久不衰的话题。而这里又有两种主要的类型:</p>
+<ul>
+<li>目标是作为缓存的系统，如常用的Redis等</li>
+<li>目标是作为<em>数据库</em>的系统，如常用的关系型数据库<code>MySQL</code>,非关系型<code>MongoDB</code>等等</li>
+</ul>
+<p>不同的业务场景需要解决的最核心的问题自然不一样，内存型的可能是查询速度和可用性等等，而数据库<br>系统则相对统一一些：</p>
+<ul>
+<li>数据的可靠性<br>既然是作为数据库系统，那么自然需要对存储到库里的系统做充分的持久性保证。无论说是在调用保存<br>之后还是数据库系统本身崩掉，都应该足够可靠的保存数据</li>
+<li>查询/更新的性能<br>除了存储，查询和更新自然是最核心、最重量级的功能。</li>
+</ul>
+<p>毫无疑问的是，对于数据库来说，数据最终总会“持久化”到磁盘上(也就是所谓的<em>非易失性存储器</em>)。<br>常见的磁盘有<a href="https://zh.wikipedia.org/wiki/%E7%A1%AC%E7%9B%98" target="_blank" rel="noopener">机械硬盘</a>, <a href="https://zh.wikipedia.org/wiki/%E5%9B%BA%E6%80%81%E7%A1%AC%E7%9B%98" target="_blank" rel="noopener">固态硬盘</a><br>对于机械硬盘来说，是有机械臂在磁盘的碟片上选择来读取数据，而固态硬盘则要快的多。但是，他们都有<br>一个核心特点：随机的读和写比顺序的要慢不少。</p>
+<p>那么，当我们需要在磁盘上高频率的存储大量数据，同时也可能高频率的查询数据时， 数据库的持久化机制<br>就显得特别重要：</p>
+<ul>
+<li>数据是随机写还是顺序写？</li>
+<li>随机写后怎么读取，顺序写了怎么读取？</li>
+<li>在存储过程中磁盘坏了怎么处理？</li>
+<li>…</li>
+</ul>
+<p>这一系列问题需要解决的都是一个点：<em>数据在磁盘上的存储方式</em>。同时，还需要平衡查询和更新中间某些数据时<br>的性能。当前，主要有如下的几种结构来组织存储在磁盘上的数据:</p>
+<ul>
+<li><code>Hash</code><br>文件被已不断增加的方式保存在磁盘上，同时，在内存里“维护”一个<code>key-offset</code>的映射关系，每当对数据进行更新的时候都同时更新这个<code>offset</code>。</li>
+<li><code>B+</code>树<br>数据被<em>有序</em>的存储在磁盘上，逻辑上构成一颗<code>B+</code>树。毫无疑问，更新和写入都是随机IO</li>
+<li><code>B</code>树<br>数据被<em>有序</em>的存储在磁盘上，逻辑上构成一颗<code>B</code>树。毫无疑问，更新和写入都是随机IO</li>
+<li><code>LSM</code>结构<br>数据已<code>append-only</code>的方式在文件上进行只增加不减少的形式存储，然后后台异步的整理文件再保存为新的文件</li>
+</ul>
+<p>下面分别作介绍：</p>
+<hr>
+<h2 id="Hash"><a href="#Hash" class="headerlink" title="Hash"></a><code>Hash</code></h2><p><code>Hash</code>结构也就是通常所说的<code>key-value</code>的映射关系，在很多编程语言里也叫<code>directory</code>。它的特点很明显：<br><strong>查找数据的平均时间复杂度为O(1)</strong></p>
+<p>而具体在一个数据库系统里（一般是指<code>key-value</code>类型）里，则主要用于构建查找数据的基本结构，主要特点如下：</p>
+<ul>
+<li>文件已<code>append-only</code>的形式追加都某个文件上</li>
+<li>内存里维护一个<code>key-offset</code>的映射关系</li>
+</ul>
+<p>由于在内存里保存了所有的<code>key</code>的文件偏移指针，所以查询数据<strong>只需要</strong>一次随机IO即可（如果已经在文件系统缓存里，则不需要磁盘IO），同时，写入也是顺序性的，所以提供了很好的性能。但同时，有如下几个缺陷：</p>
+<ul>
+<li>内存必须能保存下所有的<code>key</code><br>如果所有<code>key</code>的集合超过内存大小，则不得不把这个<code>hash</code>结构保存到磁盘上，但是对于一个磁盘上的<code>hash</code>结构很难保证有良好的性能-会要求很多的随机IO。</li>
+<li>范围查找很难实现（平衡时间和空间复杂度的情况下）</li>
+</ul>
+<p>存储引擎<code>Bitcask</code>就是使用的该模型，它非常适合于<code>key</code>更新非常频繁的场景，比如说某些视频的访问量统计-用视频的url作为<code>key</code>,某个数字作为<code>value</code>，每当有用户观看视频的时候都会更新该数据 - 也就是说，有很多的更新需求，但是总的<code>key</code>的集合并不大。</p>
+<blockquote>
+</blockquote>
+<p>ps: 上面只说道了对文件进行<em>新增</em>操作，但是对于一直更新一个文件最终会产生一个超大的文件并且文件前面的内容可能说并无作用，所以可以引入一个<code>merge/compaction</code>过程：<br>文件写入到很多固定大小的小文件中，后台异步的把这些小文件的归档为一个文件（即按照先后顺序读取文件，在内存里对文件的内容进行分析，比如说对于同一个key的多次更改则取最后一次，然后再生成新的文件，期间对文件的查找先使用旧文件，直到<code>compaction</code>完成后读取新生成的文件）。<br>当然，实际实现上可能还需要考虑以下问题：</p>
+<ul>
+<li>文件格式<br>使用csv还是自定义的二进制格式</li>
+<li>删除操作如何记录<br>可以对删除操作定义一个特殊的标记，就和新增以及更新一样的记录。</li>
+<li>崩溃恢复<br>内存里的<code>hash</code>映射将丢失，需要重新读取所有的数据文件来构建这个<code>hash</code></li>
+<li>文件安全性<br>比如持久化一半系统崩溃</li>
+<li>并发控制</li>
+</ul>
+<h2 id="LSM结构"><a href="#LSM结构" class="headerlink" title="LSM结构"></a><code>LSM</code>结构</h2><p>在上面的<code>hash</code>结构里，我们看到对于数据的组织方式是：<code>key-value</code>对被顺序的写入到文件中，对于相同的<code>key</code>，文件后面的<code>value</code>覆盖前面的<code>value</code>。在整个文件中，完全不关心<code>key-value</code>对的顺序。</p>
+<h2 id="B树"><a href="#B树" class="headerlink" title="B树"></a><code>B</code>树</h2><p><code>B</code>树是一种平衡多路查找树，它有如下几个特点：</p>
+<ul>
+<li>每个节点可以有多个子树</li>
+<li>节点数据也是左小右大,满足查找树的特点</li>
+<li>B 树每个中间节点有 k-1 个关键字（可以理解为数据）和 k 个子树（ **k 介于阶数 M 和 M/2 之间，M/2 向上取整）</li>
+<li>B 树的所有叶子节点都在同一层，并且叶子节点只有关键字，指向孩子的指针为 null</li>
+</ul>
+<p>对于存储引擎来讲，B树的一个核心点就是<strong>它的所有中间节点都有数据</strong>。它的查找逻辑：</p>
+<ol>
+<li>从根节点开始，如果查找的数据比跟小，就去左字树查找，否则去右子树</li>
+<li>和字树的多个关键字进行比较，知道找到它所处的范围，然后去该范围对应的字树查找</li>
+<li>循环直到找到叶子节点为止</li>
+</ol>
+<p>上面是算法层面的逻辑，当数据被以<code>B</code>树的结构存储在磁盘上时，又具体是如何查找的呢？</p>
+<p>由于</p>
+<h2 id="B-树"><a href="#B-树" class="headerlink" title="B+树"></a><code>B+</code>树</h2>
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Redis/" rel="tag"># Redis</a>
+          
+            <a href="/tags/MySQL/" rel="tag"># MySQL</a>
+          
+            <a href="/tags/Database/" rel="tag"># Database</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/02/15/Other/2019/" rel="next" title="2019年回顾">
+                <i class="fa fa-chevron-left"></i> 2019年回顾
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2020/03/20/Alg/多线程求和/" rel="prev" title="多线程求和的两种解法">
+                多线程求和的两种解法 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">cupofish@gmail.com</p>
+              <div class="site-description motion-element" itemprop="description"></div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">42</span>
+                    <span class="site-state-item-name">posts</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">23</span>
+                    <span class="site-state-item-name">categories</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">27</span>
+                    <span class="site-state-item-name">tags</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  
+                  
+                    
+                  
+                  
+                    
+                  
+                  <a href="https://github.com/anguslean" title="GitHub &rarr; https://github.com/anguslean" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+            </div>
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Why存储引擎"><span class="nav-number">1.</span> <span class="nav-text">Why存储引擎</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Hash"><span class="nav-number">2.</span> <span class="nav-text">Hash</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#LSM结构"><span class="nav-number">3.</span> <span class="nav-text">LSM结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#B树"><span class="nav-number">4.</span> <span class="nav-text">B树</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#B-树"><span class="nav-number">5.</span> <span class="nav-text">B+树</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+    <div id="sidebar-dimmer"></div>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2021</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">cupofish@gmail.com</span>
+
+  
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.0"></script>
+
+  <script src="/js/motion.js?v=7.1.0"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/affix.js?v=7.1.0"></script>
+
+  <script src="/js/schemes/pisces.js?v=7.1.0"></script>
+
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.0"></script>
+<script src="/js/post-details.js?v=7.1.0"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.0"></script>
+
+
+  
+
+  
+
+  
+
+  
+  
+
+<script>
+  var disqus_config = function() {
+    this.page.url = "http://www.anguslean.cn/2020/03/15/Database/存储引擎简述/";
+    this.page.identifier = "2020/03/15/Database/存储引擎简述/";
+    this.page.title = '存储引擎简述(Todo)';
+    };
+  function loadComments() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://anguslean.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', '' + +new Date());
+    (d.head || d.body).appendChild(s);
+  }
+  
+    $(function() {
+      var offsetTop = $('#comments').offset().top - $(window).height();
+      if (offsetTop <= 0) {
+        // load directly when there's no a scrollbar
+        loadComments();
+      } else {
+        $(window).on('scroll.disqus_scroll', function() {
+          // offsetTop may changes because of manually resizing browser window or lazy loading images.
+          var offsetTop = $('#comments').offset().top - $(window).height();
+          var scrollTop = $(window).scrollTop();
+
+          // pre-load comments a bit? (margin or anything else)
+          if (offsetTop - scrollTop < 60) {
+            $(window).off('.disqus_scroll');
+            loadComments();
+          }
+        });
+      }
+    });
+  
+</script>
+
+
+
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

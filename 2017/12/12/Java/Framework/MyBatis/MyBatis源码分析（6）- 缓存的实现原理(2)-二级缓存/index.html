@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang>
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.0" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.1.0',
+    sidebar: {"position":"left","display":"always","offset":12,"onmobile":false,"dimmer":true},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="在上一节分析了Mybatis的一级缓存的实现原理，也就是一个HashMap保存结果。 本节尝试分析下二级缓存的原理。上章提到的Executor接口的继承关系中还有一个很重要的类CacheExecutor没有介绍，该类其实就是一个委派类。 他提供了Mybatis中的二级缓存功能，然后把实际查询委派给实际处理类。">
+<meta name="keywords" content="javaee,mybatis">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MyBatis源码分析（6）- 缓存的实现原理(2)-二级缓存">
+<meta property="og:url" content="http://www.anguslean.cn/2017/12/12/Java/Framework/MyBatis/MyBatis源码分析（6）- 缓存的实现原理(2)-二级缓存/index.html">
+<meta property="og:site_name" content="AngusLean Blog">
+<meta property="og:description" content="在上一节分析了Mybatis的一级缓存的实现原理，也就是一个HashMap保存结果。 本节尝试分析下二级缓存的原理。上章提到的Executor接口的继承关系中还有一个很重要的类CacheExecutor没有介绍，该类其实就是一个委派类。 他提供了Mybatis中的二级缓存功能，然后把实际查询委派给实际处理类。">
+<meta property="og:locale" content="default">
+<meta property="og:image" content="https://gitee.com/angus_lean/markDownPic/raw/master/2017/11/mybatis-source-analyze-executor.png">
+<meta property="og:updated_time" content="2019-04-18T16:00:00.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="MyBatis源码分析（6）- 缓存的实现原理(2)-二级缓存">
+<meta name="twitter:description" content="在上一节分析了Mybatis的一级缓存的实现原理，也就是一个HashMap保存结果。 本节尝试分析下二级缓存的原理。上章提到的Executor接口的继承关系中还有一个很重要的类CacheExecutor没有介绍，该类其实就是一个委派类。 他提供了Mybatis中的二级缓存功能，然后把实际查询委派给实际处理类。">
+<meta name="twitter:image" content="https://gitee.com/angus_lean/markDownPic/raw/master/2017/11/mybatis-source-analyze-executor.png">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.anguslean.cn/2017/12/12/Java/Framework/MyBatis/MyBatis源码分析（6）- 缓存的实现原理(2)-二级缓存/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>MyBatis源码分析（6）- 缓存的实现原理(2)-二级缓存 | AngusLean Blog</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="default">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">AngusLean Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>Home</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>Categories</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>Archives</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>Tags</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>About</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.anguslean.cn/2017/12/12/Java/Framework/MyBatis/MyBatis源码分析（6）- 缓存的实现原理(2)-二级缓存/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="cupofish@gmail.com">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="AngusLean Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">MyBatis源码分析（6）- 缓存的实现原理(2)-二级缓存
+
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2017-12-12 00:00:00" itemprop="dateCreated datePublished" datetime="2017-12-12T00:00:00+08:00">2017-12-12</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2019-04-19 00:00:00" itemprop="dateModified" datetime="2019-04-19T00:00:00+08:00">2019-04-19</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Programming-Language/" itemprop="url" rel="index"><span itemprop="name">Programming Language</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Programming-Language/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Programming-Language/Java/Framework/" itemprop="url" rel="index"><span itemprop="name">Framework</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Programming-Language/Java/Framework/MyBatis/" itemprop="url" rel="index"><span itemprop="name">MyBatis</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>在上一节分析了Mybatis的一级缓存的实现原理，也就是一个HashMap保存结果。 本节尝试分析下二级缓存的原理。<br>上章提到的<code>Executor</code>接口的继承关系中还有一个很重要的类<code>CacheExecutor</code>没有介绍，该类其实就是一个委派类。 他提供了Mybatis中的二级缓存功能，然后把实际查询委派给实际处理类。</p>
+<a id="more"></a>
+<p><img src="https://gitee.com/angus_lean/markDownPic/raw/master/2017/11/mybatis-source-analyze-executor.png" alt></p>
+<h2 id="1-CacheExecutor类"><a href="#1-CacheExecutor类" class="headerlink" title="1. CacheExecutor类"></a>1. <code>CacheExecutor</code>类</h2><p>我们首先看看最重要的<code>query, update</code>两个方法。</p>
+<h3 id="1-1-query方法"><a href="#1-1-query方法" class="headerlink" title="1.1 query方法"></a>1.1 <code>query</code>方法</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">public</span> &lt;E&gt; <span class="function">List&lt;E&gt; <span class="title">query</span><span class="params">(MappedStatement ms, Object parameterObject, RowBounds rowBounds,   ResultHandler resultHandler)</span> <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line">   BoundSql boundSql =ms.getBoundSql(parameterObject);</span><br><span class="line">   <span class="comment">//创建一个缓存</span></span><br><span class="line">   CacheKey key = createCacheKey(ms, parameterObject, rowBounds, boundSql);</span><br><span class="line">   <span class="comment">//使用该缓存去查询</span></span><br><span class="line">   <span class="keyword">return</span> query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//实际查询方法</span></span><br><span class="line"><span class="keyword">public</span> &lt;E&gt; <span class="function">List&lt;E&gt; <span class="title">query</span><span class="params">(MappedStatement ms, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql)</span></span></span><br><span class="line"><span class="function">    <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line">    Cache cache = ms.getCache();</span><br><span class="line">    <span class="keyword">if</span> (cache != <span class="keyword">null</span>) &#123;</span><br><span class="line">    <span class="comment">//判断当前的mappedstatement是否需要刷新缓存</span></span><br><span class="line">        flushCacheIfRequired(ms);</span><br><span class="line">        <span class="keyword">if</span> (ms.isUseCache() &amp;&amp; resultHandler == <span class="keyword">null</span>) &#123;</span><br><span class="line">            ensureNoOutParams(ms, parameterObject, boundSql);</span><br><span class="line">            <span class="comment">//获取缓存数据</span></span><br><span class="line">            List&lt;E&gt; list = (List&lt;E&gt;) tcm.getObject(cache, key);</span><br><span class="line">            <span class="keyword">if</span> (list == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="comment">//调用被代理类的query方法获取数据并且缓存</span></span><br><span class="line">                list = delegate.&lt;E&gt; query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);</span><br><span class="line">                tcm.putObject(cache, key, list); <span class="comment">// issue #578 and #116</span></span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span> list;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//调用被代理类的query方法获取数据</span></span><br><span class="line">    <span class="keyword">return</span> delegate.&lt;E&gt; query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<hr>
+<h3 id="1-2-update方法"><a href="#1-2-update方法" class="headerlink" title="1.2 update方法"></a>1.2 <code>update</code>方法</h3><p>再看看<code>update</code>方法的实现<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">update</span><span class="params">(MappedStatement ms, Object parameterObject)</span> <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line"><span class="comment">//判断当前的mappedstatement是否需要刷新缓存</span></span><br><span class="line">    flushCacheIfRequired(ms);</span><br><span class="line">    <span class="comment">//调用被代理类的update方法获取数据</span></span><br><span class="line">    <span class="keyword">return</span> delegate.update(ms, parameterObject);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>update也是直接交给被委派的类处理。<br>到这里我们可以看到，查询和更新方法的大概步骤都与上节介绍的<code>BaseExecutor</code>中的实现类似。 都是如下流程：</p>
+<ul>
+<li>创建一个缓存Key</li>
+<li>根据这个key到某个容器中获取对应的数据</li>
+<li>获取不到的话交给其他部分查询（这里是被委派的类，BaseExecutor中是handler接口）</li>
+<li>再缓存数据并返回</li>
+</ul>
+<p>这两个类的缓存的key都是<code>BaseExecutor</code>接口中的<code>createCacheKey</code>方法生成的<code>CacheKey</code>实例，它们的实际区别有如下几个：</p>
+<ul>
+<li>保存缓存的容器</li>
+<li><code>BaseExecutor</code>中的缓存不可关闭，而<code>CacheExecutor</code>是可以关闭的</li>
+<li><code>BaseExecutor</code>中缓存直接通过<code>CacheKey</code>就可以查询，而<code>CacheExecutor</code>同时需要<code>CacheKey</code>以及<code>Cache</code></li>
+</ul>
+<hr>
+<h2 id="2-二级缓存的真正实现"><a href="#2-二级缓存的真正实现" class="headerlink" title="2 二级缓存的真正实现"></a>2 二级缓存的真正实现</h2><h3 id="2-1-基本实现"><a href="#2-1-基本实现" class="headerlink" title="2.1 基本实现"></a>2.1 基本实现</h3><p>上面说道，<code>CacheExecutor</code>接口保存缓存的容器是不同于<code>BaseExecutor</code>的。 那么它是使用了一个什么样的容器呢？<br>它的缓存容器的类型是<code>TransactionalCacheManager</code>。 我们看看具体实现：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">TransactionalCacheManager</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> Map&lt;Cache, TransactionalCache&gt; transactionalCaches = <span class="keyword">new</span> HashMap&lt;Cache, TransactionalCache&gt;();</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">clear</span><span class="params">(Cache cache)</span> </span>&#123;</span><br><span class="line">        getTransactionalCache(cache).clear();</span><br><span class="line">    &#125;</span><br><span class="line"><span class="comment">//获取缓存不同于BaseExecutor接口</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Object <span class="title">getObject</span><span class="params">(Cache cache, CacheKey key)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> getTransactionalCache(cache).getObject(key);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">putObject</span><span class="params">(Cache cache, CacheKey key, Object value)</span> </span>&#123;</span><br><span class="line">        getTransactionalCache(cache).putObject(key, value);</span><br><span class="line">    &#125;</span><br><span class="line">     <span class="function"><span class="keyword">private</span> TransactionalCache <span class="title">getTransactionalCache</span><span class="params">(Cache cache)</span> </span>&#123;</span><br><span class="line">        TransactionalCache txCache = transactionalCaches.get(cache);</span><br><span class="line">        <span class="keyword">if</span> (txCache == <span class="keyword">null</span>) &#123;</span><br><span class="line">          txCache = <span class="keyword">new</span> TransactionalCache(cache);</span><br><span class="line">          transactionalCaches.put(cache, txCache);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> txCache;</span><br><span class="line">     &#125;</span><br><span class="line">    <span class="comment">//...忽略其他代码</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>该缓存容器其实是包装了另外一个名为<code>TransactionalCache</code>的类，通过<code>Cache</code>类型的实例为键值来保存数据。 可以看到，在向该缓存容器查询数据时，需要提供2个参数 <code>Cache cache, CacheKey key</code>, 通过前者<code>cache</code>得到一个<code>TransactionalCache</code>然后再通过<code>key</code>取得实际的缓存结果。 我们看看<code>TransactionalCache</code>的实现<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">TransactionalCache</span> <span class="keyword">implements</span> <span class="title">Cache</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> Cache delegate;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">boolean</span> clearOnCommit;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> Map&lt;Object, Object&gt; entriesToAddOnCommit;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> Set&lt;Object&gt; entriesMissedInCache;</span><br><span class="line"><span class="comment">//内部委派一个Cache实例。 事实上这个实例才是真正的缓存内容保存的地方， 当前类只是在提交时才刷新缓存到delegate上</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">TransactionalCache</span><span class="params">(Cache delegate)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.delegate = delegate;</span><br><span class="line">        <span class="keyword">this</span>.clearOnCommit = <span class="keyword">false</span>;</span><br><span class="line">        <span class="keyword">this</span>.entriesToAddOnCommit = <span class="keyword">new</span> HashMap&lt;Object, Object&gt;();</span><br><span class="line">        <span class="keyword">this</span>.entriesMissedInCache = <span class="keyword">new</span> HashSet&lt;Object&gt;();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> String <span class="title">getId</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> delegate.getId();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">getSize</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> delegate.getSize();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> Object <span class="title">getObject</span><span class="params">(Object key)</span> </span>&#123;</span><br><span class="line">        Object object = delegate.getObject(key);</span><br><span class="line">        <span class="keyword">if</span> (object == <span class="keyword">null</span>) &#123;</span><br><span class="line">            entriesMissedInCache.add(key);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"><span class="comment">//添加一个缓存只是把它放到了一个Map中，没有提交给真正的cache</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">putObject</span><span class="params">(Object key, Object object)</span> </span>&#123;</span><br><span class="line">        entriesToAddOnCommit.put(key, object);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//提交时才刷新当前所有缓存到delegate上</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">commit</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (clearOnCommit) &#123;</span><br><span class="line">            delegate.clear();</span><br><span class="line">        &#125;</span><br><span class="line">        flushPendingEntries();</span><br><span class="line">        reset();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">flushPendingEntries</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">for</span> (Map.Entry&lt;Object, Object&gt; entry : entriesToAddOnCommit.entrySet()) &#123;</span><br><span class="line">            delegate.putObject(entry.getKey(), entry.getValue());</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">for</span> (Object entry : entriesMissedInCache) &#123;</span><br><span class="line">            <span class="keyword">if</span> (!entriesToAddOnCommit.containsKey(entry)) &#123;</span><br><span class="line">                delegate.putObject(entry, <span class="keyword">null</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"><span class="comment">//移除了部分非关键代码</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>通过上面的代码分析，我们可以看出MyBatis的二级缓存的实现和一级缓存其实区别不是很大：</p>
+<ol>
+<li>通过一个Map&lt;Cache, TransactionalCache&gt;持有所有的缓存。Cache每一个MappedStatement都不相同。</li>
+<li>添加缓存时，通过一个TransactionalCache实例委派真正的Cache实现， 所有添加到缓存的内容都先保存在TransactionalCache实例中，直到commit方法被调用，所有保存的全部刷新到委派类中并且删除本地的。</li>
+<li>查询时，首先根据每一个<code>MappedStatement</code>的实例取得对应的<code>Cache</code>的实例，然后在<code>Map&lt;Cache, TransactionalCache&gt;</code>获取TransactionalCache实例，该实例再从委派的<code>Cache</code>的实例从通过<code>CacheKey</code>获取缓存结果</li>
+</ol>
+<hr>
+<h3 id="2-2-Cache接口的几种实现"><a href="#2-2-Cache接口的几种实现" class="headerlink" title="2.2 Cache接口的几种实现"></a>2.2 <code>Cache</code>接口的几种实现</h3><p>上面说道，<code>Cache</code>实例保存了相同条件的<code>MappedStatement</code>的所有查询结果。 <code>Cache</code>接口有如下的实现：</p>
+<ul>
+<li>SynchronizedCache</li>
+<li>WeakCache</li>
+<li>TransactionalCache</li>
+<li>SoftCache</li>
+<li>SerializedCache</li>
+<li>ScheduledCache</li>
+<li>LruCache</li>
+<li>FifoCache</li>
+<li>BlockingCache</li>
+</ul>
+<p>每个实现根据名称就可以看出原理，就不赘述。 MyBatis默认使用的<code>LruCache</code>这个实现，默认情况下长度为1024.可以通过在mapper xml中的<cache>设置。<br>而每个<code>MappedStatement</code>中的<code>Cache</code>是通过<code>MappedStatement.Builder</code>方法设置，而这个则会读取用户配置的缓存然后实例化一个<code>Cache</code>,可以参考<code>MappedStatement</code>类。这就完成了整个二级缓存的步骤。</cache></p>
+<hr>
+<h3 id="2-3-二级缓存的开关"><a href="#2-3-二级缓存的开关" class="headerlink" title="2.3 二级缓存的开关"></a>2.3 二级缓存的开关</h3><p>首先，这个二级缓存默认是关闭的，可以在mapper xml中通过添加</p>
+<figure class="highlight routeros"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&lt;cache</span><br><span class="line">  <span class="attribute">eviction</span>=<span class="string">"FIFO"</span></span><br><span class="line">  <span class="attribute">flushInterval</span>=<span class="string">"60000"</span></span><br><span class="line">  <span class="attribute">size</span>=<span class="string">"512"</span></span><br><span class="line">  <span class="attribute">readOnly</span>=<span class="string">"true"</span>/&gt;</span><br></pre></td></tr></table></figure>
+<p>这种标记来打开二级缓存，具体参考文档。关闭这个缓存在mybatis config文件中，<code>setting</code>节中添加如下字段（这是全局开关）</p>
+<figure class="highlight routeros"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;setting <span class="attribute">name</span>=<span class="string">"cacheEnabled"</span> <span class="attribute">value</span>=<span class="string">"true"</span>/&gt;</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/javaee/" rel="tag"># javaee</a>
+          
+            <a href="/tags/mybatis/" rel="tag"># mybatis</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/12/08/Java/Framework/MyBatis/MyBatis源码分析（5）- 缓存的实现原理(1)-一级缓存/" rel="next" title="MyBatis源码分析（5）- 缓存的实现原理(1)-一级缓存">
+                <i class="fa fa-chevron-left"></i> MyBatis源码分析（5）- 缓存的实现原理(1)-一级缓存
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/12/25/Engineering/12factor - spring cloud推荐的一个编程方法论简述/" rel="prev" title="12factor - spring cloud推荐的一个编程方法论简述">
+                12factor - spring cloud推荐的一个编程方法论简述 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">cupofish@gmail.com</p>
+              <div class="site-description motion-element" itemprop="description"></div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">42</span>
+                    <span class="site-state-item-name">posts</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">23</span>
+                    <span class="site-state-item-name">categories</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">27</span>
+                    <span class="site-state-item-name">tags</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  
+                  
+                    
+                  
+                  
+                    
+                  
+                  <a href="https://github.com/anguslean" title="GitHub &rarr; https://github.com/anguslean" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+            </div>
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-CacheExecutor类"><span class="nav-number">1.</span> <span class="nav-text">1. CacheExecutor类</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-query方法"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 query方法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-update方法"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 update方法</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-二级缓存的真正实现"><span class="nav-number">2.</span> <span class="nav-text">2 二级缓存的真正实现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-基本实现"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 基本实现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-Cache接口的几种实现"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 Cache接口的几种实现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-二级缓存的开关"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 二级缓存的开关</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+    <div id="sidebar-dimmer"></div>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2021</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">cupofish@gmail.com</span>
+
+  
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.0"></script>
+
+  <script src="/js/motion.js?v=7.1.0"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/affix.js?v=7.1.0"></script>
+
+  <script src="/js/schemes/pisces.js?v=7.1.0"></script>
+
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.0"></script>
+<script src="/js/post-details.js?v=7.1.0"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.0"></script>
+
+
+  
+
+  
+
+  
+
+  
+  
+
+<script>
+  var disqus_config = function() {
+    this.page.url = "http://www.anguslean.cn/2017/12/12/Java/Framework/MyBatis/MyBatis源码分析（6）- 缓存的实现原理(2)-二级缓存/";
+    this.page.identifier = "2017/12/12/Java/Framework/MyBatis/MyBatis源码分析（6）- 缓存的实现原理(2)-二级缓存/";
+    this.page.title = 'MyBatis源码分析（6）- 缓存的实现原理(2)-二级缓存';
+    };
+  function loadComments() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://anguslean.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', '' + +new Date());
+    (d.head || d.body).appendChild(s);
+  }
+  
+    $(function() {
+      var offsetTop = $('#comments').offset().top - $(window).height();
+      if (offsetTop <= 0) {
+        // load directly when there's no a scrollbar
+        loadComments();
+      } else {
+        $(window).on('scroll.disqus_scroll', function() {
+          // offsetTop may changes because of manually resizing browser window or lazy loading images.
+          var offsetTop = $('#comments').offset().top - $(window).height();
+          var scrollTop = $(window).scrollTop();
+
+          // pre-load comments a bit? (margin or anything else)
+          if (offsetTop - scrollTop < 60) {
+            $(window).off('.disqus_scroll');
+            loadComments();
+          }
+        });
+      }
+    });
+  
+</script>
+
+
+
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

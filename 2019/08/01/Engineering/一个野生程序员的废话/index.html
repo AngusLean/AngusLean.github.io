@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang>
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.0" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.1.0',
+    sidebar: {"position":"left","display":"always","offset":12,"onmobile":false,"dimmer":true},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="作为一个从双非本科非计算机专业转行当软工的码农，迄今工作逾４年，我想在这里谈谈对于我这种”野生“程序员的些许想法，包括说大部分的出路、技术水平和最重要的，技术上”进阶“的一些想法。">
+<meta name="keywords" content="架构设计">
+<meta property="og:type" content="article">
+<meta property="og:title" content="一个“野生”程序员的絮叨">
+<meta property="og:url" content="http://www.anguslean.cn/2019/08/01/Engineering/一个野生程序员的废话/index.html">
+<meta property="og:site_name" content="AngusLean Blog">
+<meta property="og:description" content="作为一个从双非本科非计算机专业转行当软工的码农，迄今工作逾４年，我想在这里谈谈对于我这种”野生“程序员的些许想法，包括说大部分的出路、技术水平和最重要的，技术上”进阶“的一些想法。">
+<meta property="og:locale" content="default">
+<meta property="og:updated_time" content="2019-07-31T16:00:00.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="一个“野生”程序员的絮叨">
+<meta name="twitter:description" content="作为一个从双非本科非计算机专业转行当软工的码农，迄今工作逾４年，我想在这里谈谈对于我这种”野生“程序员的些许想法，包括说大部分的出路、技术水平和最重要的，技术上”进阶“的一些想法。">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.anguslean.cn/2019/08/01/Engineering/一个野生程序员的废话/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>一个“野生”程序员的絮叨 | AngusLean Blog</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="default">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">AngusLean Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>Home</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>Categories</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>Archives</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>Tags</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>About</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.anguslean.cn/2019/08/01/Engineering/一个野生程序员的废话/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="cupofish@gmail.com">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="AngusLean Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">一个“野生”程序员的絮叨
+
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2019-08-01 00:00:00" itemprop="dateCreated datePublished" datetime="2019-08-01T00:00:00+08:00">2019-08-01</time>
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/方法论/" itemprop="url" rel="index"><span itemprop="name">方法论</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/方法论/基本素养/" itemprop="url" rel="index"><span itemprop="name">基本素养</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>作为一个从双非本科非计算机专业转行当软工的码农，迄今工作逾４年，我想在这里谈谈对于我这种”野生“程序员的些许想法，包括说大部分的出路、技术水平和最重要的，技术上”进阶“的一些想法。</p>
+<a id="more"></a>
+<h2 id="最低层次"><a href="#最低层次" class="headerlink" title="最低层次"></a>最低层次</h2><p>　　首先一个很残酷的事实是，大部分程序员都是既没有学历也没有很好的“机会”的，这也意味着，大部分的人在刚开始工作时往往是在不大的公司甚至说只有个位数开发人员的公司工作，能进入大公司、外企始终只有很小一部分。这也符合正态分布。能够在毕业就进入很好的公司在今天愈加困难，所以，大部分程序员，都是“挣扎”在无数的小公司。<br>　　而小公司，百分之九十九的几率意味着用户量不大，业务也不会复杂到哪里去。在J2EE的世界里，很多时候，jQuery+BootStrap/SpringMVC+MyBatis+MySQL一把梭就可以解决几乎所有的开发任务，不会遇到所谓的并发性能问题，也不会遇到现有框架无法满足业务需，或者需要定制开发自己的某个组件的机会。这是处于这个层级的开发人员几乎无法解决的“硬性条件”。<br>　　但上述其实还好，我们可以说它仅仅是“环境不好”，毕竟，谁都知道技术这东西看个人。但更为可怕的是，大部分天天做这些业务逻辑的<strong>不知道自己不知道什么</strong>。一个黑培训机构的笑话是:</p>
+<blockquote>
+<p>某天，面试一个培训机构出来的php，问他们使用php哪个版本（想着问点版本特性），结果人家回的”我们不用php,用的是ThinkPHP“</p>
+</blockquote>
+<p>这个问题肯定不能反应所有的培训机构出来的开发人员，但是大部分的也的却相差无几。而拿到以Java为开发语言的程序员来说，存在同样的<strong>”困境“</strong>。我列几个我真实遇到的例子：</p>
+<ul>
+<li><code>Action</code>(或者叫<code>Controller</code>)就是服务器。前端传入的东西就是这里直接收到的</li>
+<li>框架就是方案。要写数据库只需要定义一个~Mapper~和相应的~XML~就可以，它们直接操作数据库</li>
+<li>部署项目就是把war包放到tomcat下，然后启动就可以</li>
+<li>写任何逻辑，只需要先定义一个类，然后里面添加对应的方法完成逻辑就可以，这是唯一的方法</li>
+<li>Java代码直接跑在硬件上，与PHP这些就是不同语言的区别</li>
+</ul>
+<p>等等，类似的观点不一而足。当然，不是说上述看法有什么大问题，而是很多时候，很多开发人员真的就是<strong>”眼前展示是咋样认为软件就完全是这样“</strong>。对于任意一个有过科班训练或者较多学习经验的都会觉得类似的问题完全是怡笑大方。但对于转行或者培训出来的开发人员，在刚工作时得得却却就完全是这样的状态。</p>
+<h2 id="较为普遍的一部分"><a href="#较为普遍的一部分" class="headerlink" title="较为普遍的一部分"></a>较为普遍的一部分</h2><p>  而大部分情况下，工作经历不会对这种情况有很大的改变，工作经验的增加仅仅是复制的代码越来越多而已，在最根本的“技术认知”上不会有什么变动，所以，两三年过后，可以很悲观的说，技术之路就几乎已经废弃了，因为已经形成一个固定的<strong>“思维定式”</strong>，再想矫正就非易事了。更何况说，某种程度上，还自认为“写代码就这么回事”不会做出什么改变。<br>这是我见到的“野生”程序员中很典型或者说悲观的一些情况。这种，就完完全全是个人既缺乏思考也不会主动学习。<br>更大比例的“野生”程序员还是多少有些要求的，无论说是对于技术本身还是薪酬要求，都想更近一步的学习。毕竟说，选择转行总还是需要有某种想法的。<br>这一类程序员最大的问题是，<strong>只看到了框架层面</strong>，对原理层面所知甚少甚至说还有很多错误的观点。比如说对于SpringMVC与Netty的关系混淆不清，JUC里面的东西都是Java自身的“黑科技”而没有其他的来源，编程语言都是通过定义类来完成逻辑等等，以及一个很常见的意识　－　架构师只需要对常见的框架像很多公众号所描述的那样了解这个的实现原理了解那个的实现原理（这里指的就是了解这个层次），而不会对为什么这么实现、实现的优缺点和它内在的原理有更多的思考。<br>上面的例子或许不是很恰当，但是可以很直观的反应问题:</p>
+<ul>
+<li><strong>对软件工程的理解局限于<code>J2EE</code>构建的工具之上</strong>，没有更低层次的了解或者说思考</li>
+</ul>
+<p>更为通俗的说法是，“基础知识”几乎为0：</p>
+<ul>
+<li>操作系统。　不清楚在硬件的基础，哪些东西是操作系统为我们提供的抽象哪些是硬件支持的东西</li>
+<li>网络。　常见的TCP/IP协议簇在J2EE里的具体关系或者应用场景</li>
+<li>应用服务器/JVM抽象层次。　他们与操作系统之间的关系、与上层应用之间的关系和提供的能力差别</li>
+<li>编译原理/数据库原理。　哪些东西是Java在做哪些东西是JVM在做，数据库哪些是自身实现哪些是OS实现</li>
+<li>分布式架构下基础设施、算法和上层框架的关系。　比如<code>CAP</code>,<code>Paxos</code>与<code>ZooKeeper</code>/<code>Eureka</code>之间的区别等等</li>
+<li>软件工程思维。　代码组织结构，怎样的代码才是“好”的代码(这个较为抽象)，任何逻辑都是<code>Copy-Paste</code>一溜。对于重构、软件工程分层思维等缺乏一个整体上的认知</li>
+<li><code>J2EE</code>的世界与软件工程世界的比对。　这个不用多说</li>
+</ul>
+<h2 id="学习途径"><a href="#学习途径" class="headerlink" title="学习途径"></a>学习途径</h2><p>其实，这些点，几乎都可以在计算机专业本科培养计划中找到所有的答案，可惜的是，很多”科班“出身的都是一脸懵逼更何况说半路转行的”野生“程序员。在工作的前面几年，如果没有对这些基础知识不断的补充和学习的话，一个开发人员的”技术视野／技术思维”几乎肯定在某些方面是有问题的。或许说在短时间内看不出什么，但长远来看必定是很不好的。<br>  一个题外话就是，最近一两年各自公众号或者说学习平台都不间断的再推类似“架构师课程”、”学会这些必进BAT年薪xx万”之类的教程，无一例外，都是“框架”层次的东西，教的也几乎是“某某东西是咋样的”，而对于为什么是这样以及如何学习写出这些东西则是少之又少。因为，要学这些，必然涉及到基础知识，而学习基础知识则是很困难和无趣的。</p>
+<p>而对于学习这些东西，扩展技术视野，作为一个既进不了“大厂”也不是什么技术负责人的码农来说，我觉得有这几种途径：</p>
+<ol>
+<li>最为简单的，刷计算机专业考研课，可以是普通高校的数据库C语言等，最为推荐的系统的学习考研408</li>
+<li>阅读《程序员必读书单》，从里面优先选择底层的东西，暂时忽略高屋建瓴的各种软工理论和方法论。我读过的是:<ul>
+<li>《深入理解计算机系统》</li>
+<li>《现代操作系统》</li>
+<li>《TCP/IP详解》</li>
+<li>《unix网络编程》</li>
+<li>《编程语言实现模式》</li>
+</ul>
+</li>
+</ol>
+<p>等等。　当然，每一本都是<strong>“大部头”</strong>，很难完全吸收，需要不断的温习。我觉得在学习这些东西的时候，要注意一个非常非常重要的原则是</p>
+<ul>
+<li><strong>关注底层而不是框架实现</strong>，例如<code>JUC</code>里各种工具类，Java线程，不应该孤立的学习他们，而应该把它们与JVM/OS的相关内容放在一起学，再比如，Redis/MySQL/MongoDB等数据库，应该关注磁盘文件存储、日志系统和OS里的页表等<br>而在<code>J2EE</code>里，<code>Spring</code>从传统的<code>XML</code>配置到<code>Spring Boot</code>的注解配置到<code>Spring Cloud</code>和<code>Spring Cloud2</code>的各种自动装配，应该关注它里面的设计模式和在“提升开发效率与增加实现复杂度”上的一系列取舍等等，纠结于<code>Spring</code>里各种纷繁复杂的实现多少有点南辕北辙。</li>
+</ul>
+<p>最后，这些想法我一直是这么认为的并且在坚持做到，遗憾的是由于懒惰技术上成就有限。但是，陈硕在<a href="https://coolshell.cn" target="_blank" rel="noopener">酷壳</a>里也有同样的观点，所以我认为这条路应该是对的。</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/架构设计/" rel="tag"># 架构设计</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/06/15/Common/线程模型/" rel="next" title="线程模型变迁－Java和Go语言的选择">
+                <i class="fa fa-chevron-left"></i> 线程模型变迁－Java和Go语言的选择
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/08/06/DistributeSystem/Zab算法与Paxos算法/" rel="prev" title="Zab算法与Paxos算法异同">
+                Zab算法与Paxos算法异同 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">cupofish@gmail.com</p>
+              <div class="site-description motion-element" itemprop="description"></div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">42</span>
+                    <span class="site-state-item-name">posts</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">23</span>
+                    <span class="site-state-item-name">categories</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">27</span>
+                    <span class="site-state-item-name">tags</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  
+                  
+                    
+                  
+                  
+                    
+                  
+                  <a href="https://github.com/anguslean" title="GitHub &rarr; https://github.com/anguslean" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+            </div>
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#最低层次"><span class="nav-number">1.</span> <span class="nav-text">最低层次</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#较为普遍的一部分"><span class="nav-number">2.</span> <span class="nav-text">较为普遍的一部分</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#学习途径"><span class="nav-number">3.</span> <span class="nav-text">学习途径</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+    <div id="sidebar-dimmer"></div>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2021</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">cupofish@gmail.com</span>
+
+  
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.0"></script>
+
+  <script src="/js/motion.js?v=7.1.0"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/affix.js?v=7.1.0"></script>
+
+  <script src="/js/schemes/pisces.js?v=7.1.0"></script>
+
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.0"></script>
+<script src="/js/post-details.js?v=7.1.0"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.0"></script>
+
+
+  
+
+  
+
+  
+
+  
+  
+
+<script>
+  var disqus_config = function() {
+    this.page.url = "http://www.anguslean.cn/2019/08/01/Engineering/一个野生程序员的废话/";
+    this.page.identifier = "2019/08/01/Engineering/一个野生程序员的废话/";
+    this.page.title = '一个“野生”程序员的絮叨';
+    };
+  function loadComments() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://anguslean.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', '' + +new Date());
+    (d.head || d.body).appendChild(s);
+  }
+  
+    $(function() {
+      var offsetTop = $('#comments').offset().top - $(window).height();
+      if (offsetTop <= 0) {
+        // load directly when there's no a scrollbar
+        loadComments();
+      } else {
+        $(window).on('scroll.disqus_scroll', function() {
+          // offsetTop may changes because of manually resizing browser window or lazy loading images.
+          var offsetTop = $('#comments').offset().top - $(window).height();
+          var scrollTop = $(window).scrollTop();
+
+          // pre-load comments a bit? (margin or anything else)
+          if (offsetTop - scrollTop < 60) {
+            $(window).off('.disqus_scroll');
+            loadComments();
+          }
+        });
+      }
+    });
+  
+</script>
+
+
+
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

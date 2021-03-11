@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang>
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.0" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.1.0',
+    sidebar: {"position":"left","display":"always","offset":12,"onmobile":false,"dimmer":true},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="作为Spring Boot中最常使用的的HTTP客户端，RestTemplate在各种Http通讯中都大量使用。但是，对其原理缺不够熟悉。本文记录的是一次踩坑记录。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RestTemplate踩坑记录">
+<meta property="og:url" content="http://www.anguslean.cn/2019/04/04/Java/Framework/Spring/RestTemplate对于响应的处理解析/index.html">
+<meta property="og:site_name" content="AngusLean Blog">
+<meta property="og:description" content="作为Spring Boot中最常使用的的HTTP客户端，RestTemplate在各种Http通讯中都大量使用。但是，对其原理缺不够熟悉。本文记录的是一次踩坑记录。">
+<meta property="og:locale" content="default">
+<meta property="og:image" content="http://p5rx80fa6.bkt.clouddn.com/%E8%AF%B7%E6%B1%82%E5%8F%91%E5%87%BA.png">
+<meta property="og:image" content="http://p5rx80fa6.bkt.clouddn.com/%E8%AF%B7%E6%B1%82%E5%93%8D%E5%BA%94.png">
+<meta property="og:updated_time" content="2019-04-18T16:00:00.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="RestTemplate踩坑记录">
+<meta name="twitter:description" content="作为Spring Boot中最常使用的的HTTP客户端，RestTemplate在各种Http通讯中都大量使用。但是，对其原理缺不够熟悉。本文记录的是一次踩坑记录。">
+<meta name="twitter:image" content="http://p5rx80fa6.bkt.clouddn.com/%E8%AF%B7%E6%B1%82%E5%8F%91%E5%87%BA.png">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.anguslean.cn/2019/04/04/Java/Framework/Spring/RestTemplate对于响应的处理解析/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>RestTemplate踩坑记录 | AngusLean Blog</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="default">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">AngusLean Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>Home</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>Categories</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>Archives</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>Tags</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>About</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.anguslean.cn/2019/04/04/Java/Framework/Spring/RestTemplate对于响应的处理解析/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="cupofish@gmail.com">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="AngusLean Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">RestTemplate踩坑记录
+
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2019-04-04 00:00:00" itemprop="dateCreated datePublished" datetime="2019-04-04T00:00:00+08:00">2019-04-04</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2019-04-19 00:00:00" itemprop="dateModified" datetime="2019-04-19T00:00:00+08:00">2019-04-19</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Programming-Language/" itemprop="url" rel="index"><span itemprop="name">Programming Language</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Programming-Language/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Programming-Language/Java/Framework/" itemprop="url" rel="index"><span itemprop="name">Framework</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Programming-Language/Java/Framework/spring/" itemprop="url" rel="index"><span itemprop="name">spring</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>作为<code>Spring Boot</code>中最常使用的的HTTP客户端，<code>RestTemplate</code>在各种Http通讯中都大量使用。<br>但是，对其原理缺不够熟悉。本文记录的是一次踩坑记录。</p>
+<a id="more"></a>
+<h2 id="问题复现"><a href="#问题复现" class="headerlink" title="问题复现"></a>问题复现</h2><p>出现问题的代码类似这样：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//通过RestTemplate给大汉三通短信网关发出请求，已发送短信</span></span><br><span class="line"><span class="function"><span class="keyword">private</span> SmsSinglePushResult <span class="title">doSendSms</span><span class="params">(String url, Object mobile, Object content, Map params)</span></span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        log.info(<span class="string">"开始调用大汉三通的接口给用户:&#123;&#125; 发送短信:&#123;&#125;"</span>, mobile, content);</span><br><span class="line">        HttpHeaders headers = <span class="keyword">new</span> HttpHeaders();</span><br><span class="line">        headers.setContentType(MediaType.APPLICATION_JSON);</span><br><span class="line">        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));</span><br><span class="line">        headers.setAcceptCharset(Arrays.asList(Charset.forName(<span class="string">"utf-8"</span>)));</span><br><span class="line">        HttpEntity&lt;Map&gt; strEntity = <span class="keyword">new</span> HttpEntity&lt;&gt;(params, headers);</span><br><span class="line">        <span class="comment">//这里报错</span></span><br><span class="line">        DaHanSanTongResult strResult1 = restTemplate.postForObject(url, strEntity, DaHanSanTongResult<span class="class">.<span class="keyword">class</span>)</span>;</span><br><span class="line"></span><br><span class="line">    &#125;<span class="keyword">catch</span> (Exception e)&#123;</span><br><span class="line">        log.error(<span class="string">"调用大汉三通的发送短信接口出错。接收手机:"</span>+mobile+<span class="string">" 内容:"</span>+content, e);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>上述例子在项目中被大量使用，几乎没有遇到过问题。<code>RestTemplate</code>的第3个参数指定了响应的类型被反序列化的类型。而在大汉三通的文档中也明确写到请求和响应都是<code>UTF-8</code>格式的<code>JSON</code>字符串，所以想当然的认为这样是没有问题的。<br>实际运行结果如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">org.springframework.web.client.RestClientException: Could not extract response: no suitable HttpMessageConverter found for response type [class com.ctspcl.sms.gateway.manager.sms.dahansantong.base.DaHanSanTongResult] and content type [application/octet-stream]</span><br><span class="line">    at org.springframework.web.client.HttpMessageConverterExtractor.extractData(HttpMessageConverterExtractor.java:<span class="number">110</span>)</span><br><span class="line">    at org.springframework.web.client.RestTemplate.doExecute(RestTemplate.java:<span class="number">655</span>)</span><br><span class="line">    at org.springframework.web.client.RestTemplate.execute(RestTemplate.java:<span class="number">613</span>)</span><br><span class="line">    at org.springframework.web.client.RestTemplate.postForObject(RestTemplate.java:<span class="number">380</span>)</span><br></pre></td></tr></table></figure>
+<h2 id="问题追踪"><a href="#问题追踪" class="headerlink" title="问题追踪"></a>问题追踪</h2><p>上面的问题很明显，对于响应头<code>application/octet-stream</code>找不到对应的解析器。这里奇怪的是大汉三通的文档中明确写到响应是<code>JSON</code>格式字符串，但是为什么响应的<code>Content-Type</code>是<br><code>application/octet-stream</code>这个较为少见的头呢？  于是抓包看下：</p>
+<h3 id="抓包"><a href="#抓包" class="headerlink" title="抓包"></a>抓包</h3><p>请求抓包:<br><img src="http://p5rx80fa6.bkt.clouddn.com/%E8%AF%B7%E6%B1%82%E5%8F%91%E5%87%BA.png" alt="请求抓包"><br>响应抓包:<br><img src="http://p5rx80fa6.bkt.clouddn.com/%E8%AF%B7%E6%B1%82%E5%93%8D%E5%BA%94.png" alt="响应抓包"></p>
+<p>可以看到，响应中<code>HTTP</code>头事实上是没有<code>Content-Type</code>字段的。那么这个<code>application/octet-stream</code>是哪里来的？ 是因为我们请求时指定的返回<code>Bean</code>影响了这个头么？</p>
+<p>看下代码。</p>
+<h3 id="源码分析"><a href="#源码分析" class="headerlink" title="源码分析"></a>源码分析</h3><p>通过源码发现，<code>RestTemplate</code>把对响应结果的处理封装为一个<code>HttpMessageConverterExtractor</code>。然后在获取到响应后调用其中的</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//大部分用户调用的接口的实现都类似这样</span></span><br><span class="line"><span class="keyword">public</span> &lt;T&gt; <span class="function">T <span class="title">postForObject</span><span class="params">(String url, Object request, Class&lt;T&gt; responseType, Object... uriVariables)</span></span></span><br><span class="line"><span class="function">    <span class="keyword">throws</span> RestClientException </span>&#123;</span><br><span class="line">    RequestCallback requestCallback = httpEntityCallback(request, responseType);</span><br><span class="line">    HttpMessageConverterExtractor&lt;T&gt; responseExtractor =</span><br><span class="line">        <span class="keyword">new</span> HttpMessageConverterExtractor&lt;T&gt;(responseType, getMessageConverters(), logger);</span><br><span class="line">    <span class="keyword">return</span> execute(url, HttpMethod.POST, requestCallback, responseExtractor, uriVariables);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//对于包含URL参数的请求的处理</span></span><br><span class="line"><span class="keyword">public</span> &lt;T&gt; <span class="function">T <span class="title">execute</span><span class="params">(String url, HttpMethod method, RequestCallback requestCallback,</span></span></span><br><span class="line"><span class="function"><span class="params">                         ResponseExtractor&lt;T&gt; responseExtractor, Object... uriVariables)</span> <span class="keyword">throws</span> RestClientException </span>&#123;</span><br><span class="line">    URI expanded = getUriTemplateHandler().expand(url, uriVariables);</span><br><span class="line">    <span class="keyword">return</span> doExecute(expanded, method, requestCallback, responseExtractor);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//实际处理部分</span></span><br><span class="line"><span class="keyword">protected</span> &lt;T&gt; <span class="function">T <span class="title">doExecute</span><span class="params">(URI url, HttpMethod method, RequestCallback requestCallback,</span></span></span><br><span class="line"><span class="function"><span class="params">                          ResponseExtractor&lt;T&gt; responseExtractor)</span> <span class="keyword">throws</span> RestClientException </span>&#123;</span><br><span class="line">    ClientHttpResponse response = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        ClientHttpRequest request = createRequest(url, method);</span><br><span class="line">        <span class="keyword">if</span> (requestCallback != <span class="keyword">null</span>) &#123;</span><br><span class="line">            requestCallback.doWithRequest(request);</span><br><span class="line">        &#125;</span><br><span class="line">        response = request.execute();</span><br><span class="line">        handleResponse(url, method, response);</span><br><span class="line">        <span class="keyword">if</span> (responseExtractor != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="comment">//解析响应结果</span></span><br><span class="line">            <span class="keyword">return</span> responseExtractor.extractData(response);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">catch</span> (IOException ex) &#123;</span><br><span class="line">    <span class="comment">//忽略异常</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>由于通过抓包我们可以确定Http响应是没有<code>Content-Type</code>，所以基本可以确定<code>application/octet-stream</code>这个头是在这个<code>Extractor</code>中加上的。查看下这个方法：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> T <span class="title">extractData</span><span class="params">(ClientHttpResponse response)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    MessageBodyClientHttpResponseWrapper responseWrapper = <span class="keyword">new</span> MessageBodyClientHttpResponseWrapper(response);</span><br><span class="line">    <span class="keyword">if</span> (!responseWrapper.hasMessageBody() || responseWrapper.hasEmptyMessageBody()) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//根据响应获取ContentType</span></span><br><span class="line">    MediaType contentType = getContentType(responseWrapper);</span><br><span class="line">    <span class="keyword">for</span> (HttpMessageConverter&lt;?&gt; messageConverter : <span class="keyword">this</span>.messageConverters) &#123;</span><br><span class="line">        <span class="keyword">if</span> (messageConverter <span class="keyword">instanceof</span> GenericHttpMessageConverter) &#123;</span><br><span class="line">            GenericHttpMessageConverter&lt;?&gt; genericMessageConverter =</span><br><span class="line">                (GenericHttpMessageConverter&lt;?&gt;) messageConverter;</span><br><span class="line">            <span class="keyword">if</span> (genericMessageConverter.canRead(<span class="keyword">this</span>.responseType, <span class="keyword">null</span>, contentType)) &#123;</span><br><span class="line">                <span class="keyword">return</span> (T) genericMessageConverter.read(<span class="keyword">this</span>.responseType, <span class="keyword">null</span>, responseWrapper);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">this</span>.responseClass != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (messageConverter.canRead(<span class="keyword">this</span>.responseClass, contentType)) &#123;</span><br><span class="line">                <span class="keyword">return</span> (T) messageConverter.read((Class) <span class="keyword">this</span>.responseClass, responseWrapper);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> MediaType <span class="title">getContentType</span><span class="params">(ClientHttpResponse response)</span> </span>&#123;</span><br><span class="line">    MediaType contentType = response.getHeaders().getContentType();</span><br><span class="line">    <span class="keyword">if</span> (contentType == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="comment">//这里设置了默认的ContentType</span></span><br><span class="line">        contentType = MediaType.APPLICATION_OCTET_STREAM;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> contentType;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面可以看到代码中设置了默认的<code>Content-Type</code>为<code>MediaType.APPLICATION_OCTET_STREAM</code>，也就是<code>application/octet-stream</code>。 所以说，响应头变为这个也就可以解释了。<br>但是还有另外一个疑惑： 平常（<code>Spring Boot</code>项目）在这样使用<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">restTemplate.postForObject(url, strEntity, DaHanSanTongResult<span class="class">.<span class="keyword">class</span>)</span>;</span><br></pre></td></tr></table></figure></p>
+<p>的时候，为什么可以直接把响应转换为一个具体的POJO。服务器的响应都是<code>JSON</code>字符串，也都是<code>UTF-8</code>格式。通常，上述也可以通过返回<code>String</code>来处理<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">restTemplate.postForObject(url, strEntity, String<span class="class">.<span class="keyword">class</span>)</span>;</span><br></pre></td></tr></table></figure></p>
+<p>这两种都可以正常处理，而上面这种情况却无法处理。</p>
+<p>上面代码中的<code>extractData</code>方法很明显是问题的关键。其中，遍历了当前所有的<code>HttpMessageConverter</code>，然后挨个调用其中的<code>canRead</code>方法。 该方法的签名:<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">boolean</span> <span class="title">canRead</span><span class="params">(Type type, Class&lt;?&gt; contextClass, MediaType mediaType)</span></span>;</span><br></pre></td></tr></table></figure></p>
+<p>可以看到，这个<code>canRead</code>方法接收一个目标类(<code>Class</code>)类型，一个上下文类型（不重要）， 以及一个<code>MediaType</code>。 这也就是说，这个方法决定了<strong> 当前这个<code>HttpMessageConverter</code>支持哪种<code>MediaType</code>转换为哪种<code>Class</code></strong>。</p>
+<p>查看当前这个<code>Extractor</code>,发现它支持如下的<code>HttpMessageConverter</code>(默认的<code>Spring Boot</code>配置，没有另外添加):</p>
+<ul>
+<li><code>ByteArrayHttpMessageConverter</code></li>
+<li><code>StringArrayHttpMessageConverter</code></li>
+<li><code>ResourceHttpMessageConverter</code></li>
+<li><code>SourceHttpMessageConverter</code></li>
+<li><code>AllEncompassingFormHttpMessageConverter</code></li>
+<li><code>Jaxb2RootElementHttpMessageConverter</code></li>
+<li><code>MappingJackson2HttpMessageConverter</code></li>
+</ul>
+<p>对每个类查看，发现他们对于<code>MediaType</code>和<code>Class</code>的支持情况如下:</p>
+<ul>
+<li><code>ByteArrayHttpMessageConverter</code><br>支持<code>application/octet-stream, */*</code>的<code>MediaType</code>与<code>byte[]</code>的<code>Class</code></li>
+<li><code>StringArrayHttpMessageConverter</code><br>支持<code>application/text/plain, */*</code>的<code>MediaType</code>与<code>String</code>的<code>Class</code></li>
+<li><code>ResourceHttpMessageConverter</code><br>支持<code>*/*</code>的<code>MediaType</code>与<code>Resource</code>的<code>Class</code></li>
+<li><code>SourceHttpMessageConverter</code><br>支持<code>application/xml,text/xml</code>的<code>MediaType</code>与<code>DOMSource，SAXSource，StAXSource，StreamSource，Source</code>的<code>Class</code></li>
+<li><code>AllEncompassingFormHttpMessageConverter</code><br>这是一个复合类，它会根据当前的<code>ClassLoader</code>加载如下的一个<code>HttpMessageConverter</code>:<ul>
+<li>Jaxb2RootElementHttpMessageConverter</li>
+<li>MappingJackson2HttpMessageConverter</li>
+<li>GsonHttpMessageConverter</li>
+<li>MappingJackson2XmlHttpMessageConverter</li>
+</ul>
+</li>
+<li><code>Jaxb2RootElementHttpMessageConverter</code><br>支持<code>application/xml,text/xml,application/+xml</code>的<code>MediaType</code>与被<code>XmlRootElement，XmlType</code>注解的<code>Class</code>。 这是一个使用<code>JAXB2</code>的<code>Converter</code>，对于<code>XML</code>格式的响应会比较常用</li>
+<li><code>MappingJackson2HttpMessageConverter</code><br>支持<code>application/json，application/+json</code>的可以被<code>JackSon</code>序列化的<code>Class</code>。</li>
+</ul>
+<h3 id="结论及解决方式"><a href="#结论及解决方式" class="headerlink" title="结论及解决方式"></a>结论及解决方式</h3><p>所以在类似调用<code>restTemplate.postForObject(url, strEntity, XXXBean.class);</code>的时候，如果Http响应头的<code>Content-Type</code>为<code>application/json，application/+json</code>就使用<code>JackSon</code>来反序列化Http Body为对应的Java类。但是上面我们遇到的问题由于响应头不是这个，并且期望的返回类也不是上面7个<code>HttpMessageConverter</code>所支持的<code>Class</code>中任何一个，自然会报<strong><code>no suitable HttpMessageConverter found</code></strong> 这种错误。而我们发现<code>String, byte[]</code>的<code>Class</code>是可以被序列化的，所以改为其中任意一个即可解决该问题。<br>同时，正常情况下服务器对应响应是应该设置<em>正确</em>的<code>Content Type</code>的，上面这个服务器的行为对于用户就很不友好了。</p>
+<h3 id="后续"><a href="#后续" class="headerlink" title="后续"></a>后续</h3><p>本文没有对<code>RestTemplate</code>对于请求的处理解析。关键逻辑几乎都在<code>RestTemplate</code>的内部类<code>HttpEntityRequestCallback</code>的<code>doWithRequest</code>方法中，一看就懂。内部逻辑与解析响应雷同。</p>
+<p>这里也感慨下程序员的技术道路，现在有很多的公众号或者app提供了很多文章，对很多东西都有了总结性的介绍，但是如果一个开发者仅仅看这些，不深入到书本、深入到代码中去研究，是如同无根浮萍的。 往远了说，大厂为什么青睐招985/211的人，即使有些代码本身写的并不好。 其实也就是一个根基问题，而根基决定了可塑性。</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/03/28/Java/Concurrent/Java并发基础（5）并发概念与synchronize现细节/" rel="next" title="Java并发基础（5）并发概念与synchronized现细节">
+                <i class="fa fa-chevron-left"></i> Java并发基础（5）并发概念与synchronized现细节
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/04/20/Tool/Git核心概念及原理/" rel="prev" title="Git核心概念及原理">
+                Git核心概念及原理 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">cupofish@gmail.com</p>
+              <div class="site-description motion-element" itemprop="description"></div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">42</span>
+                    <span class="site-state-item-name">posts</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">23</span>
+                    <span class="site-state-item-name">categories</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">27</span>
+                    <span class="site-state-item-name">tags</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  
+                  
+                    
+                  
+                  
+                    
+                  
+                  <a href="https://github.com/anguslean" title="GitHub &rarr; https://github.com/anguslean" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+            </div>
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#问题复现"><span class="nav-number">1.</span> <span class="nav-text">问题复现</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#问题追踪"><span class="nav-number">2.</span> <span class="nav-text">问题追踪</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#抓包"><span class="nav-number">2.1.</span> <span class="nav-text">抓包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#源码分析"><span class="nav-number">2.2.</span> <span class="nav-text">源码分析</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#结论及解决方式"><span class="nav-number">2.3.</span> <span class="nav-text">结论及解决方式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#后续"><span class="nav-number">2.4.</span> <span class="nav-text">后续</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+    <div id="sidebar-dimmer"></div>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2021</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">cupofish@gmail.com</span>
+
+  
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.0"></script>
+
+  <script src="/js/motion.js?v=7.1.0"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/affix.js?v=7.1.0"></script>
+
+  <script src="/js/schemes/pisces.js?v=7.1.0"></script>
+
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.0"></script>
+<script src="/js/post-details.js?v=7.1.0"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.0"></script>
+
+
+  
+
+  
+
+  
+
+  
+  
+
+<script>
+  var disqus_config = function() {
+    this.page.url = "http://www.anguslean.cn/2019/04/04/Java/Framework/Spring/RestTemplate对于响应的处理解析/";
+    this.page.identifier = "2019/04/04/Java/Framework/Spring/RestTemplate对于响应的处理解析/";
+    this.page.title = 'RestTemplate踩坑记录';
+    };
+  function loadComments() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://anguslean.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', '' + +new Date());
+    (d.head || d.body).appendChild(s);
+  }
+  
+    $(function() {
+      var offsetTop = $('#comments').offset().top - $(window).height();
+      if (offsetTop <= 0) {
+        // load directly when there's no a scrollbar
+        loadComments();
+      } else {
+        $(window).on('scroll.disqus_scroll', function() {
+          // offsetTop may changes because of manually resizing browser window or lazy loading images.
+          var offsetTop = $('#comments').offset().top - $(window).height();
+          var scrollTop = $(window).scrollTop();
+
+          // pre-load comments a bit? (margin or anything else)
+          if (offsetTop - scrollTop < 60) {
+            $(window).off('.disqus_scroll');
+            loadComments();
+          }
+        });
+      }
+    });
+  
+</script>
+
+
+
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang>
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.0" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.1.0',
+    sidebar: {"position":"left","display":"always","offset":12,"onmobile":false,"dimmer":true},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="作为数据库系统的核心概念，ACID几乎是一个耳熟能详的缩写。 但是，在日常开发中，大部分情况下事务使用不多，很多人也就逐渐忘了这几个特性是什么，以及更加重要的，为什么要有这几个隔离级别、传播级别，如果没有他们，会引起什么问题，以及，在数据库中，他们的通常实现是什么。 通过一定的资料翻阅，本文尝试对这几个概念做一些基本介绍">
+<meta property="og:type" content="article">
+<meta property="og:title" content="数据库事务隔离级别和传播级别详解">
+<meta property="og:url" content="http://www.anguslean.cn/2018/05/31/Database/数据库事务隔离级别和传播级别详解/index.html">
+<meta property="og:site_name" content="AngusLean Blog">
+<meta property="og:description" content="作为数据库系统的核心概念，ACID几乎是一个耳熟能详的缩写。 但是，在日常开发中，大部分情况下事务使用不多，很多人也就逐渐忘了这几个特性是什么，以及更加重要的，为什么要有这几个隔离级别、传播级别，如果没有他们，会引起什么问题，以及，在数据库中，他们的通常实现是什么。 通过一定的资料翻阅，本文尝试对这几个概念做一些基本介绍">
+<meta property="og:locale" content="default">
+<meta property="og:image" content="http://p5rx80fa6.bkt.clouddn.com/non-dirty-read.bmp">
+<meta property="og:image" content="http://p5rx80fa6.bkt.clouddn.com/non-dirty-write.bmp">
+<meta property="og:image" content="http://p5rx80fa6.bkt.clouddn.com/race_condition_counter.bmp">
+<meta property="og:updated_time" content="2018-06-06T16:00:00.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="数据库事务隔离级别和传播级别详解">
+<meta name="twitter:description" content="作为数据库系统的核心概念，ACID几乎是一个耳熟能详的缩写。 但是，在日常开发中，大部分情况下事务使用不多，很多人也就逐渐忘了这几个特性是什么，以及更加重要的，为什么要有这几个隔离级别、传播级别，如果没有他们，会引起什么问题，以及，在数据库中，他们的通常实现是什么。 通过一定的资料翻阅，本文尝试对这几个概念做一些基本介绍">
+<meta name="twitter:image" content="http://p5rx80fa6.bkt.clouddn.com/non-dirty-read.bmp">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.anguslean.cn/2018/05/31/Database/数据库事务隔离级别和传播级别详解/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>数据库事务隔离级别和传播级别详解 | AngusLean Blog</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="default">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">AngusLean Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>Home</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>Categories</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>Archives</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>Tags</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>About</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.anguslean.cn/2018/05/31/Database/数据库事务隔离级别和传播级别详解/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="cupofish@gmail.com">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="AngusLean Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">数据库事务隔离级别和传播级别详解
+
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2018-05-31 00:00:00" itemprop="dateCreated datePublished" datetime="2018-05-31T00:00:00+08:00">2018-05-31</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2018-06-07 00:00:00" itemprop="dateModified" datetime="2018-06-07T00:00:00+08:00">2018-06-07</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/数据库/" itemprop="url" rel="index"><span itemprop="name">数据库</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>作为数据库系统的核心概念，ACID几乎是一个耳熟能详的缩写。 但是，在日常开发中，大部分情况下事务使用不多，很多人也就逐渐忘了这几个特性是什么，以及更加重要的，为什么要有这几个隔离级别、传播级别，如果没有他们，会引起什么问题，以及，在数据库中，他们的通常实现是什么。 通过一定的资料翻阅，本文尝试<br>对这几个概念做一些基本介绍</p>
+<a id="more"></a>
+<h2 id="Isolation-事务隔离级别"><a href="#Isolation-事务隔离级别" class="headerlink" title="Isolation 事务隔离级别"></a><code>Isolation</code> 事务隔离级别</h2><h3 id="为什么有？"><a href="#为什么有？" class="headerlink" title="为什么有？"></a>为什么有？</h3><p>如果两个事务没有操作相同的数据（或者说叫做修改某行<code>Row</code>）， 那么他们可以安全的并行操作。但是当两个事务都打算修改某个数据，或者一个事务读取另外一个事务修改的数据的时候，彼此对于数据的查找或者更新就发生了冲突，这也就是并发编程中的<code>race condition</code>,竞态条件。<br>一般来说，并发BUG很难调试 - 至少复现是的机率的随机的，而且，在一个大型应用中，并发的问题也很难考量-你不知道有哪些代码在访问数据库。 对于数据库操作来说，多个并发用户都可能在修改数据库中的数据，这使得相关的访问数据库代码在处理竟态条件时变得异常麻烦。这可以参考Java中的<code>volatile</code>变量的效果来考虑这个问题。<br>所以<strong>数据库事务有几个隔离级别的设计初衷就类似于Java中的<code>Synchronized</code>、<code>volatile</code>，前者可以绝对的保证不发生竞态条件以及可见性问题，相应的就是性能上的下降，后者就只能保证可见性。</strong> ，至于不同的数据库支持的具体级别则是属于数据库设计上的考量。<br>由于这个原因，数据库系统为了减轻开发者处理并发操作数据库中的难度，提供了一个叫做<code>transaction isolation</code>的功能。<br>理论上说，<code>transaction isolation</code>极大的降低了并发问题的处理难度，极端上，<code>serializable</code>级别使得数据库保证事务像线性一样运行-也就是没有并发问题。但是，技术上很多情况下都是没有完美解的，<code>transaction isolation</code>也是一样的 –<code>serializable</code> 级别有着较大的性能开销，对于很多数据库来说是不可接受的，所以数据库系统也提供了很多稍微<strong>弱</strong>(<code>weak isolation</code>)一级的<code>transaction isolation</code>。 <em>这些<strong>弱</strong>一级的<code>transaction isolation</code>解决了部分并发问题，但不是全部。</em> 注意这个描述，他们仅仅解决了<strong>部分</strong>并发问题，所以使用不当仍然可能导致并发问题。<br>下面分别介绍这几个<code>weak isolation(nonserializable)</code>的实际使用，竟态条件的发生情况，以便于可以<em>正确</em>使用它们。</p>
+<h3 id="分类"><a href="#分类" class="headerlink" title="分类"></a>分类</h3><h4 id="READ-COMMIMTED"><a href="#READ-COMMIMTED" class="headerlink" title="- READ_COMMIMTED"></a>- <code>READ_COMMIMTED</code></h4><p><strong> 基本定义 </strong><br>最基础的事务隔离级别，它保证了两方面：</p>
+<ul>
+<li>当从数据库读数据的时候，仅能读到已经提交<code>commit</code>的数据（比如其他事务中修改了但是没有提交的数据就看不到）。 这个也叫做没有<code>dirty read</code></li>
+<li>当写数据库到库中的时候，仅能覆盖已经提交<code>commit</code>的数据。 这个也叫做没有<code>dirty write</code></li>
+</ul>
+<p>事务隔离级别为<code>READ_COMMIMTED</code>的事务必须不能发生脏读(<code>dirty read</code>)，也就是对于如下的事务情况，用户1在事务中设置<code>x=3</code>, 同时用户2在另外一个事务中读取数据时，看到的<code>x</code>仍必须是旧的数据2. 对于读取<code>y</code>也是一样的道理，当且仅当事务提交后，用户2才能看到<code>x</code>为3，y为4。<br><img src="http://p5rx80fa6.bkt.clouddn.com/non-dirty-read.bmp" alt="非脏读"><br>在这些情况下防止脏读是非常有意义的：</p>
+<ul>
+<li>一个事务在做多个更新操作，另外的事务不应该看到这个“未完成”的数据</li>
+<li>如果一个事务发生了异常，那么它可以回滚。 如果这时允许脏读，其他事务就可能看到一个已经“回滚”了的数据，必然会出现问题。</li>
+</ul>
+<p>如果多个事务同时写相同的数据库数据，那么具体的写的顺序是未知的，但是可以确定的是后写入的一个数据会覆盖前面一个数据。 但是，如果前面一个写是处于没有提交的事务中的时候，第二次写是不是覆盖这个“未提交”的数据？ 这就是脏写。 防止脏写通常情况下会延迟第二次写知道第一次已经提交。<br>脏写可能带来如下的并发问题：</p>
+<ul>
+<li>如果事务做多次更新操作，脏写就可能带来问题。考虑如下情况，一次商品购买操作需要两次数据库更新：更新订单表记录买家和商品；更细消息通知表买家和商品，在允许脏写的情况下，第一个买家（用户1）首先更新了订单表的，更新买家和商品记录，然后用户2覆盖了这个“未提交”的操作，用户2更新了自己的下单：更新订单表和消息通知表，然后用户1才来完成更新消息通知表的操作。 这时候，结果就是消息通知表认为该商品卖给了用户1，而订单表则认为是用户2.<br><img src="http://p5rx80fa6.bkt.clouddn.com/non-dirty-write.bmp" alt="dirty write"></li>
+<li><code>read committed</code>没有解决两个事务自增的冲突，防止脏写使得第二次的写在第一次事务提交之后才发生-但是结果仍然是不对的<br><img src="http://p5rx80fa6.bkt.clouddn.com/race_condition_counter.bmp" alt="race condition in counter"></li>
+</ul>
+<p>还必须注意的是，由于不能脏读，所以对于一个事务中针对某个条件的两次查询，两次查询的数据很可能是不一致的。着也被称为<code>non-repeatable read</code>，如果读取的结果是多条数据，两次读取有多出数据，则称为<code>phantom read</code>。</p>
+<p><strong> 实现 </strong><br><code>READ_COMMITTED</code>被广泛支持，它是<code>Oracle 11g， PostgreSQL, SQL Server 2012</code>的默认级别。注意，<code>MySQL</code>的默认级别不是这个，是<code>REPEATABLE READ</code></p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/05/25/Java/Framework/Spring/Spring事务详解（核心概念及使用）/" rel="next" title="Spring事务详解（核心概念及使用）">
+                <i class="fa fa-chevron-left"></i> Spring事务详解（核心概念及使用）
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/06/01/Java/JVM/从String对象查看Java对象内存布局情况/" rel="prev" title="从String对象查看Java对象内存布局情况">
+                从String对象查看Java对象内存布局情况 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">cupofish@gmail.com</p>
+              <div class="site-description motion-element" itemprop="description"></div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">42</span>
+                    <span class="site-state-item-name">posts</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">23</span>
+                    <span class="site-state-item-name">categories</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">27</span>
+                    <span class="site-state-item-name">tags</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  
+                  
+                    
+                  
+                  
+                    
+                  
+                  <a href="https://github.com/anguslean" title="GitHub &rarr; https://github.com/anguslean" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+            </div>
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Isolation-事务隔离级别"><span class="nav-number">1.</span> <span class="nav-text">Isolation 事务隔离级别</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#为什么有？"><span class="nav-number">1.1.</span> <span class="nav-text">为什么有？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#分类"><span class="nav-number">1.2.</span> <span class="nav-text">分类</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#READ-COMMIMTED"><span class="nav-number">1.2.1.</span> <span class="nav-text">- READ_COMMIMTED</span></a></li></ol></li></ol></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+    <div id="sidebar-dimmer"></div>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2021</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">cupofish@gmail.com</span>
+
+  
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.0"></script>
+
+  <script src="/js/motion.js?v=7.1.0"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/affix.js?v=7.1.0"></script>
+
+  <script src="/js/schemes/pisces.js?v=7.1.0"></script>
+
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.0"></script>
+<script src="/js/post-details.js?v=7.1.0"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.0"></script>
+
+
+  
+
+  
+
+  
+
+  
+  
+
+<script>
+  var disqus_config = function() {
+    this.page.url = "http://www.anguslean.cn/2018/05/31/Database/数据库事务隔离级别和传播级别详解/";
+    this.page.identifier = "2018/05/31/Database/数据库事务隔离级别和传播级别详解/";
+    this.page.title = '数据库事务隔离级别和传播级别详解';
+    };
+  function loadComments() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://anguslean.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', '' + +new Date());
+    (d.head || d.body).appendChild(s);
+  }
+  
+    $(function() {
+      var offsetTop = $('#comments').offset().top - $(window).height();
+      if (offsetTop <= 0) {
+        // load directly when there's no a scrollbar
+        loadComments();
+      } else {
+        $(window).on('scroll.disqus_scroll', function() {
+          // offsetTop may changes because of manually resizing browser window or lazy loading images.
+          var offsetTop = $('#comments').offset().top - $(window).height();
+          var scrollTop = $(window).scrollTop();
+
+          // pre-load comments a bit? (margin or anything else)
+          if (offsetTop - scrollTop < 60) {
+            $(window).off('.disqus_scroll');
+            loadComments();
+          }
+        });
+      }
+    });
+  
+</script>
+
+
+
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

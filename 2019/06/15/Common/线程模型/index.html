@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang>
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.0" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.1.0',
+    sidebar: {"position":"left","display":"always","offset":12,"onmobile":false,"dimmer":true},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="本文将尝试较为深入的谈谈并发编程在Java、Go语言中的体现方式，目的是从一个技术发展的历史趋势上看某一个“新兴”的技术栈出现的前因后果，既加深对某项东西的理解，也是加深在这个行业的“纵向积累”。">
+<meta name="keywords" content="多线程,编程语言">
+<meta property="og:type" content="article">
+<meta property="og:title" content="线程模型变迁－Java和Go语言的选择">
+<meta property="og:url" content="http://www.anguslean.cn/2019/06/15/Common/线程模型/index.html">
+<meta property="og:site_name" content="AngusLean Blog">
+<meta property="og:description" content="本文将尝试较为深入的谈谈并发编程在Java、Go语言中的体现方式，目的是从一个技术发展的历史趋势上看某一个“新兴”的技术栈出现的前因后果，既加深对某项东西的理解，也是加深在这个行业的“纵向积累”。">
+<meta property="og:locale" content="default">
+<meta property="og:image" content="https://gitee.com/angus_lean/markDownPic/raw/master/2019/07/process1.png">
+<meta property="og:image" content="https://gitee.com/angus_lean/markDownPic/raw/master/2019/07/process2.png">
+<meta property="og:image" content="https://gitee.com/angus_lean/markDownPic/raw/master/2019/07/go_process1.png">
+<meta property="og:image" content="https://gitee.com/angus_lean/markDownPic/raw/master/2019/07/go_process2.png">
+<meta property="og:updated_time" content="2019-07-15T16:00:00.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="线程模型变迁－Java和Go语言的选择">
+<meta name="twitter:description" content="本文将尝试较为深入的谈谈并发编程在Java、Go语言中的体现方式，目的是从一个技术发展的历史趋势上看某一个“新兴”的技术栈出现的前因后果，既加深对某项东西的理解，也是加深在这个行业的“纵向积累”。">
+<meta name="twitter:image" content="https://gitee.com/angus_lean/markDownPic/raw/master/2019/07/process1.png">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.anguslean.cn/2019/06/15/Common/线程模型/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>线程模型变迁－Java和Go语言的选择 | AngusLean Blog</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="default">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">AngusLean Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>Home</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>Categories</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>Archives</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>Tags</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>About</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.anguslean.cn/2019/06/15/Common/线程模型/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="cupofish@gmail.com">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="AngusLean Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">线程模型变迁－Java和Go语言的选择
+
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2019-06-15 00:00:00" itemprop="dateCreated datePublished" datetime="2019-06-15T00:00:00+08:00">2019-06-15</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2019-07-16 00:00:00" itemprop="dateModified" datetime="2019-07-16T00:00:00+08:00">2019-07-16</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/多线程/" itemprop="url" rel="index"><span itemprop="name">多线程</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>本文将尝试较为深入的谈谈并发编程在Java、Go语言中的体现方式，目的是从一个技术发展的历史趋势上看某一个“新兴”的技术栈出现的前因后果，既加深对某项东西的理解，也是加深在这个行业的“纵向积累”。<br><a id="more"></a></p>
+<h3 id="进程与线程的基本概念"><a href="#进程与线程的基本概念" class="headerlink" title="进程与线程的基本概念"></a>进程与线程的基本概念</h3><p>首先我们思考两个问题：</p>
+<ul>
+<li>为什么要有进程／线程？</li>
+<li>进程和线程的区别是什么？<br>我们知道，在计算机中，任何时刻“都”同时需要处理多个任务：　读取外设的输入、读取磁盘、在屏幕上显示当前任务的结果、后台对某些东西做计算等等。如果说我们的计算机仅仅支持“同时”运行一件事情（这里的同时是相对于用户来说，不是指时刻上的概念），那么我们的计算机将是这个样子：</li>
+<li>键盘在等待输入时计算机不会做任何响应，必须等待键盘有输入时才可以</li>
+<li>读取磁盘内容时不能在键盘上有输入－因为这时没有运行外设读取逻辑</li>
+<li>程序在执行自身逻辑，比如计算时，也不能做上述任何操作</li>
+</ul>
+<p>毫无疑问，这种情况的计算机从实用的角度是很难受的。并且，CPU由于硬件的原因，它的执行速度比很多外设－磁盘、键盘、网络等快很多个数量级，在进行这些操作时CPU一直等待也是十分浪费资源的。于是便有了”进程“这一抽象模型。概况的讲，有这些特点：</p>
+<ul>
+<li>正在执行的程序的”整体“，或者说叫实例</li>
+<li>进程的最主要目地是把某些操作或者逻辑归为一个“整体”，但不一定是同时在运行<br>也就是说，进程是一组执行资源的组合，进程间的区别是他们彼此<strong>“完全独立”</strong>，通常的，不考虑他们之间需要通信（因为设计原则就是独立）。进程是一个逻辑上的执行体，它们可能在CPU上的某一个“核”上通过时间片的方式“交替运行”，也可能就是“物理上的并行执行”。而进程的切换则是这样的：</li>
+</ul>
+<ol>
+<li>当前进程在运行中，主动进行系统调用切换进程或者说被内核的调度程序睡眠</li>
+<li>内核保存该进程的<strong>所有信息</strong>, 典型的，程序计数器PC, 所有的寄存器（因为内核不知道哪些正在使用），刷新<code>MMU(虚拟地址翻译为物理地址的硬件)</code></li>
+<li>还原某个新的进程的所有寄存器，切换到新的进程上执行</li>
+</ol>
+<p>这里要注意到，进程的切换（也就是所谓的上下文切换）是在内核中，用户空间／内核切换需要开销，保存进程的<strong>所有寄存器</strong>是一个很大的开销，同时，还有还原另外一个进程的寄存器、<code>MMU</code>刷新的开销。所以说，进程的切换是非常昂贵。<br>在这种情况下，对于很多应用场景，“进程”依然是一个比较重量级的操作。于是，产生了“线程”这一概念。线程与进程的主要区别是:</p>
+<ul>
+<li>同一个进程的所有线程共享相同的地址空间<blockquote>
+<p>使得上下文切换时不必刷新<code>MMU</code></p>
+</blockquote>
+</li>
+<li>切换线程依然需要切换线程自身的栈空间<blockquote>
+<p>因为线程设计为有自己的<strong>单独</strong>的执行流程，所以需要保存线程栈</p>
+</blockquote>
+</li>
+</ul>
+<p>一种看待进程和线程的观点是，进程是一组资源的组合（包括打开的文件、虚拟地址空间、子进程、定时器等），线程则是一个”具体“的执行实体，每个线程有自己的寄存器（用来保存线程当前的工作变量），还有自己的堆栈（保存了当前线程的方法调用过程）。在同一个进程中并行运行多个线程，也就是对在同一台计算上并行运行多个进程的模拟。前一个情况下，多个线程共享虚拟地址空间和其他资源，后一种情形下，多个进程共享物理内存，磁盘，打印机和其他资源。<br>线程的切换与进程的切换一样，都需要操作系统和硬件（CPU, <code>MMU</code>,内存）的紧密合作，自然这部分是实现在内核中。但是，他们的最终目地都是供”用户空间“使用，所以，线程的具体实现依然是多有考量:</p>
+<h3 id="线程的实现方式"><a href="#线程的实现方式" class="headerlink" title="线程的实现方式"></a>线程的实现方式</h3><p>线程的实现通常来说有几种方式（必须注意这里说的内核的”一个线程“某种程度上就是前面说的”进程“，因为某些系统其实是不支持”线程“这个概念的）:</p>
+<ul>
+<li>1:1,用户线程和内核线程1:1<blockquote>
+<p>对于1:1的模型来说，内核知道的仍然是”一个进程“，在用户空间里创建一个线程就对应着内核中的一个线程。内核中通过线程表记录系统中所有的线程，当某个线程希望创建一个新线程时，它进行一个系统调用，这个系统调用通过对线程表的更新完成线程创建或者撤销。这个线程表中保存了每个线程的寄存器、状态和其他信息。同时，还维护了进程表（同理）。对于线程内部的阻塞系统调用，内核知道这里阻塞了，根据<strong>一定的策略</strong>，选出同进程中另一个就绪线程执行。<br>这种方式的缺点是在内核中创建或者撤销线程的代价较大，对于有大量的进程创建或者撤销的情形来说性能影响巨大。不过这种方式的优点是不会因为阻塞系统调用就阻塞掉整个线程。</p>
+</blockquote>
+</li>
+<li>N:1, 多个用户线程映射为一个内核线程<blockquote>
+<p>这种方式就是把线程包放在用户空间中，内核对线程包”一无所知“，从内核的角度看，它就只看到<strong>一个线程</strong>。　这种方式最明显的优点是，用户级线程包可以<strong>自由</strong>选择调度逻辑，用户包可以根据实际需要选择某个线程被执行或者挂起的时机，不用担心线程会在不合适的时机停止。<br>用户空间管理线程时，每个线程都有专用的”线程表“，包括程序计数器、栈指针、寄存器和状态等，同上面的内核线程一致。当某个线程做了例如等待其他线程完成某项工作之类的会引起本地阻塞的事情后，它调用的这个”运行时“过程会检查是否需要进入阻塞状态，如果是，则会保存当前线程的寄存器，查看进程中可以运行的线程（也就是就绪了的），把新线程的数据载入内存，切换指令指针寄存器，新的线程就执行了。如果硬件提供保存所有寄存器和载入寄存器的指令，这些逻辑可以在很短的时钟周期内完成，性能非常不错。<br>用户级线程包的一个明显的问题是，如何进行阻塞系统调用。因为内核对进程中的其他”线程“是一无所知的，当某个线程进行阻塞系统调用，比如等待键盘输入、磁盘读取、网络读取时，阻塞会导致整个进程被阻塞，也就是所有线程都被阻塞。这个问题现行的解决办法是把阻塞调用改为非阻塞调用，比如网络调用中常用的<code>Selector</code>接口，读取文件时<code>read</code>返回可读取大小等等。<br>另外一个问题是，某个线程的程序调用产生了一个<strong>缺页</strong>时（也就是引用的虚拟地址没有在内存中被映射），就会产生一条缺页故障，操作系统会到磁盘上取回这个没有被映射的地址的内容（和相邻的数据）。这一过程中，由于内核不知道用户线程的存在，会阻塞整个”进程“的所有线程。但实际上这个时候其他线程是可以运行的。<br>还有一个问题就是某个线程在执行的时候，除非这个线程<strong>主动</strong>让出CPU,不然其他线程没有机会被执行。因为对于内核来说只看到一个线程。一个可能的实现方式是在用户线程包中请求每秒一次的时钟信号（中断）来调度程序，但是这个是生硬和无效的。</p>
+</blockquote>
+</li>
+<li>M:N,通常M&gt;N,也就是用户空间中动态的把多个线程映射到有限的内核线程<blockquote>
+<p>这种方式其实也就是一种混合实现方式。编程人员决定多少哥用户线程和多少哥内核线程彼此多路复用。某些内核线程会被多个用户线程复用。用户线程包决定映射哪些线程到哪些内核线程。<strong>内核级的线程切换需要保存线程的完整栈和载入新线程的完整栈，而用户态的线程不需要这一步，只需要保存必要的寄存器以及更改指令指针寄存器即可</strong>。这种方式带来了最大的灵活性，但是，实现的复杂性、如何解决“阻塞系统调用阻塞整个进程“依然是一个问题。</p>
+</blockquote>
+<h4 id="Linux的线程模型"><a href="#Linux的线程模型" class="headerlink" title="Linux的线程模型"></a>Linux的线程模型</h4><code>linux</code>从2.6以后，引入了一个被称为<a href="https://en.wikipedia.org/wiki/Native_POSIX_Thread_Library" target="_blank" rel="noopener">NPTL</a>的模型，这个包是现在linux下主流的模型，几乎都使用的这个模型，而以前的<a href="https://en.wikipedia.org/wiki/LinuxThreads" target="_blank" rel="noopener">LinuxThread</a>由于过时就不多讨论。<br><code>NPTL</code>是最初由<code>Red Hat</code>开发的一个线程模型，这种模型对应着上述的<strong>1:1</strong>，也就是一个用户线程被映射会一个内核线程。这是一个完全兼容<a href="https://en.wikipedia.org/wiki/POSIX" target="_blank" rel="noopener">POSIX标准</a>的实现，它解决了linux以前的线程包的一些问题，带来了更好的性能等等，所以逐渐成为linux上线程的事实实现方式。很多上层编程语言都是通过这个接口来实现自身的线程抽象。<br><code>NPTL</code>为什么采用这种1:1的模型，除了实现简单之外，一个很重要的原因是<code>Linux</code>上的对线程创建的优化：</li>
+<li>常数时间的内核切换</li>
+<li>内部调用优化,例如<code>pthread_create, exit</code>等等</li>
+</ul>
+<p>这里有篇<a href="http://www.drdobbs.com/open-source/nptl-the-new-implementation-of-threads-f/184406204" target="_blank" rel="noopener">文章</a>较为详细的阐述了这一过程。</p>
+<h4 id="Java-JVM-的线程抽象"><a href="#Java-JVM-的线程抽象" class="headerlink" title="Java(JVM)的线程抽象"></a>Java(JVM)的线程抽象</h4><p>这里说Java的线程抽象，其实某种程度上不完全准确的，因为Java仅仅作为JVM平台上的”一个“语言，而线程肯定是JVM这种中间层的一个通用概念，所以这里实际上说的就是JVM的线程实现。<br>进一步的说，我们讨论的JVM线程模型通常都指的是服务器上的，而Linux毫无疑问是最为广泛使用的OS。在<a href="https://openjdk.java.net/groups/hotspot/docs/RuntimeOverview.html#Thread%20Management|outline" target="_blank" rel="noopener">JVM文档</a>里清楚的写着:</p>
+<blockquote>
+<p>The basic threading model in Hotspot is a 1:1 mapping between Java threads (an instance of java.lang.Thread) and native operating system threads. The native thread is created when the Java thread is started, and is reclaimed once it terminates. The operating system is responsible for scheduling all threads and dispatching to any available CPU<br>JVM的线程模型是1:1对应着操作系统本地线程的，当Java线程开始的时候本地线程即被创建，并且随着Java线程终止而终止。操作系统负责调度所有的线程和给线程分配CPU。</p>
+</blockquote>
+<p>在JVM内部，通过一个叫做<code>JavaThread</code>的对象代表着Java中的某个线程（通过OOP,前面内存模型文章里有说过），通过一个叫做<code>OSThread</code>的对象代表着操作系统的线程。见<br><a href="http://hg.openjdk.java.net/jdk8/jdk8/hotspot/file/87ee5ee27509/src/share/vm/runtime/osThread.cpp" target="_blank" rel="noopener">OsThread代码</a><br><a href="http://hg.openjdk.java.net/jdk8/jdk8/hotspot/file/87ee5ee27509/src/os/linux/vm/os_linux.cpp" target="_blank" rel="noopener">Linux实现</a></p>
+<p>所以，JVM平台上的线程模型与我们经典的Linux线程模型并无区别，他们之间仅仅是说在JVM上运行的语言往往提供了<code>Thread</code>之上的封装，但是这个没有改变JVM线程模型的本质：　1:1操作系统线程，而Linux的线程又是完全的1:1内核线程。所有线程的调度都是有操作系统来管理的。<br>由于线程模型本质上的相同，所以在Java里多线程编程与使用<code>C/C++</code>这种系统语言在<code>Linux</code>上编写没有多大的区别，仅仅是某些语言写法或者特性上的不同。</p>
+<h4 id="Go的线程模型"><a href="#Go的线程模型" class="headerlink" title="Go的线程模型"></a>Go的线程模型</h4><p>前面说过，除了1:1这种模型，还存在M:N这种模型。这个模型带来了最大的灵活性和性能优势，但是缺点是实现复杂和上层语言上的模型设计问题。比如说阻塞系统调用、缺页等依然会是一个需要解决的问题。<br>但是Go语言的<code>goroutines</code>　给这个问题给出了一个目前来说非常优雅的方式。<br>相较于依赖内核来管理线程的时间片，<code>goroutines</code>是协作调度的。<code>goroutines</code>的调度仅仅发生在如下的一些节点：</p>
+<ul>
+<li><code>Channel</code>的阻塞接收和发送</li>
+<li><code>go</code>声明。但是不保证这个新的<code>goroutines</code>会立即被执行。</li>
+<li>阻塞系统调用，比如文件或者网络</li>
+<li>GC停顿完成后</li>
+</ul>
+<p>上面几个原则解决了前述的用户级线程的阻塞系统调度问题。<br>多个<code>goroutines</code>被<code>go runtime</code>映射到一个操作系统线程里，这使得<code>goroutines</code>的创建和销毁变得非常轻量。一个进程中成千上万的<code>goroutines</code>变得可行。某种意义上，<code>goroutines</code>可以类似为方法调用，每当到达<code>goroutines</code>的调度点，<code>go runtime</code>就自动的执行<code>goroutines</code>切换逻辑，类似于在我们字节码中插入多个<strong>“切面”</strong>。编译器知道每个<code>goroutines</code>所使用的寄存器并且自动保存，然后<strong>“小心”</strong>的把<code>goroutines</code>调度到某个可用的操作系统线程里。<br>前说说过，对于线程切换，<strong>栈</strong>的切换也是一个很重的操作。而对于用户态的线程则完全不是。因为对于内核来说，它看到的可能仅仅是“一个线程”，不需要进行线程的栈的完整的保留，对于内核来说，它看到的就是一个线程的“笔直”的一个执行顺序。而实际上，中间可能多次切换到其他线程去了。由于多个<code>goroutines</code>在同一个系统线程里，它们有着相同的虚拟地址空间，这里的切换也只需保存必要的寄存器，然后切换PC（下一步执行的代码的寄存器）寄存器即可。当然，每个用户线程依然需要有自己的栈。</p>
+<h4 id="Go的栈管理"><a href="#Go的栈管理" class="headerlink" title="Go的栈管理"></a>Go的栈管理</h4><p>一个典型的进程的内存结构是这样的：<br><img src="https://gitee.com/angus_lean/markDownPic/raw/master/2019/07/process1.png" alt="传统进程的地址空间"><br>在进程的地址空间里面，通常堆在地址空间的下部（仅仅在程序数据段上方），向上声场; 而栈通常在顶部，向下生长。操作系统为了避免<strong>栈和堆的重叠</strong>，通常在中间会加入一个成为<code>guard page</code>的空间以标识各自的范围:<br><img src="https://gitee.com/angus_lean/markDownPic/raw/master/2019/07/process2.png" alt="传统进程的地址空间2"><br>而对于一个进程里的多个线程，它们共享地址空间，但是又有各自的栈，所以结构通常是这样的：<br><img src="https://gitee.com/angus_lean/markDownPic/raw/master/2019/07/go_process1.png" alt="多线程的地址空间"><br>每个线程有自己的栈空间，也有各自的<code>guard page</code>。这是通常的实现。但是，这里很明显的问题，对于每一个栈分配的空间的大小的估计是一个很重要的问题，分配的过小程序会出错退出，过大则浪费了很多的地址空间。<br>前面说道go运行时调度很多个<code>goroutines</code>到很小的线程里，这是怎么实现的呢？<br><img src="https://gitee.com/angus_lean/markDownPic/raw/master/2019/07/go_process2.png" alt="多线程的地址空间"><br>每一个<code>goroutines</code>初始都有一个很小的栈空间，随着运行可能会动态改变。在go 1.5的时候是2k。<br>go并没有使用<code>guard page</code>，而是在所有的方法调用里都插入了栈空间检查函数，对于还有足够空间运行的则直接运行，否则，就在堆里分配一个较大的块作为栈空间并且拷贝当前栈空间的内容过去并且清０旧的空间然后执行函数调用。当然，对于不用的空间依然会有复用，这个同JVM的回收一个道理。<br>这种方式，使得<code>goroutines</code>的创建变得真正的“轻量”，调度也变得很快速了。</p>
+<blockquote>
+<p>当然，这里必须注意的是对于<code>goroutines</code>的栈如果过大的时候会导致新分配内存和内存拷贝，会很大程度上影响性能。所以代码应该是要仔细设计的。</p>
+</blockquote>
+<p>最后，<code>goroutine</code>是新概念么，它在编程语言的历史中<strong>*</strong>新东西**么，这个后面再说</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/多线程/" rel="tag"># 多线程</a>
+          
+            <a href="/tags/编程语言/" rel="tag"># 编程语言</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/06/06/DistributeSystem/缓存的几种模式简述/" rel="next" title="缓存的几种模式">
+                <i class="fa fa-chevron-left"></i> 缓存的几种模式
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/08/01/Engineering/一个野生程序员的废话/" rel="prev" title="一个“野生”程序员的絮叨">
+                一个“野生”程序员的絮叨 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">cupofish@gmail.com</p>
+              <div class="site-description motion-element" itemprop="description"></div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">42</span>
+                    <span class="site-state-item-name">posts</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">23</span>
+                    <span class="site-state-item-name">categories</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">27</span>
+                    <span class="site-state-item-name">tags</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  
+                  
+                    
+                  
+                  
+                    
+                  
+                  <a href="https://github.com/anguslean" title="GitHub &rarr; https://github.com/anguslean" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+            </div>
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#进程与线程的基本概念"><span class="nav-number">1.</span> <span class="nav-text">进程与线程的基本概念</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#线程的实现方式"><span class="nav-number">2.</span> <span class="nav-text">线程的实现方式</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Linux的线程模型"><span class="nav-number">2.1.</span> <span class="nav-text">Linux的线程模型</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Java-JVM-的线程抽象"><span class="nav-number">2.2.</span> <span class="nav-text">Java(JVM)的线程抽象</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Go的线程模型"><span class="nav-number">2.3.</span> <span class="nav-text">Go的线程模型</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Go的栈管理"><span class="nav-number">2.4.</span> <span class="nav-text">Go的栈管理</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+    <div id="sidebar-dimmer"></div>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2021</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">cupofish@gmail.com</span>
+
+  
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.0"></script>
+
+  <script src="/js/motion.js?v=7.1.0"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/affix.js?v=7.1.0"></script>
+
+  <script src="/js/schemes/pisces.js?v=7.1.0"></script>
+
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.0"></script>
+<script src="/js/post-details.js?v=7.1.0"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.0"></script>
+
+
+  
+
+  
+
+  
+
+  
+  
+
+<script>
+  var disqus_config = function() {
+    this.page.url = "http://www.anguslean.cn/2019/06/15/Common/线程模型/";
+    this.page.identifier = "2019/06/15/Common/线程模型/";
+    this.page.title = '线程模型变迁－Java和Go语言的选择';
+    };
+  function loadComments() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://anguslean.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', '' + +new Date());
+    (d.head || d.body).appendChild(s);
+  }
+  
+    $(function() {
+      var offsetTop = $('#comments').offset().top - $(window).height();
+      if (offsetTop <= 0) {
+        // load directly when there's no a scrollbar
+        loadComments();
+      } else {
+        $(window).on('scroll.disqus_scroll', function() {
+          // offsetTop may changes because of manually resizing browser window or lazy loading images.
+          var offsetTop = $('#comments').offset().top - $(window).height();
+          var scrollTop = $(window).scrollTop();
+
+          // pre-load comments a bit? (margin or anything else)
+          if (offsetTop - scrollTop < 60) {
+            $(window).off('.disqus_scroll');
+            loadComments();
+          }
+        });
+      }
+    });
+  
+</script>
+
+
+
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

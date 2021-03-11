@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang>
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.0" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.1.0',
+    sidebar: {"position":"left","display":"always","offset":12,"onmobile":false,"dimmer":true},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="作为Java世界事实上的构建标准，maven被几乎所有的项目使用着。 但是如果任何工具一样，总会有或多或少的最佳实践或者说避坑选项。 本节尝试列出根据我的经验所“认为”的一些实践经验， 不敢称为“最佳实践”，“项目实践”姑且可以。 本文假设具备基础的maven使用经验，了解如何使用maven,如何添加依赖如何打包。 本文的目的仅仅是介绍maven在项目中一些常用、非常重要的概念， 使得开发人员对于">
+<meta property="og:type" content="article">
+<meta property="og:title" content="maven项目实践">
+<meta property="og:url" content="http://www.anguslean.cn/2018/01/26/Tool/maven项目实践/index.html">
+<meta property="og:site_name" content="AngusLean Blog">
+<meta property="og:description" content="作为Java世界事实上的构建标准，maven被几乎所有的项目使用着。 但是如果任何工具一样，总会有或多或少的最佳实践或者说避坑选项。 本节尝试列出根据我的经验所“认为”的一些实践经验， 不敢称为“最佳实践”，“项目实践”姑且可以。 本文假设具备基础的maven使用经验，了解如何使用maven,如何添加依赖如何打包。 本文的目的仅仅是介绍maven在项目中一些常用、非常重要的概念， 使得开发人员对于">
+<meta property="og:locale" content="default">
+<meta property="og:updated_time" content="2018-03-13T16:00:00.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="maven项目实践">
+<meta name="twitter:description" content="作为Java世界事实上的构建标准，maven被几乎所有的项目使用着。 但是如果任何工具一样，总会有或多或少的最佳实践或者说避坑选项。 本节尝试列出根据我的经验所“认为”的一些实践经验， 不敢称为“最佳实践”，“项目实践”姑且可以。 本文假设具备基础的maven使用经验，了解如何使用maven,如何添加依赖如何打包。 本文的目的仅仅是介绍maven在项目中一些常用、非常重要的概念， 使得开发人员对于">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.anguslean.cn/2018/01/26/Tool/maven项目实践/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>maven项目实践 | AngusLean Blog</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="default">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">AngusLean Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>Home</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>Categories</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>Archives</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>Tags</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>About</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.anguslean.cn/2018/01/26/Tool/maven项目实践/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="cupofish@gmail.com">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="AngusLean Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">maven项目实践
+
+              
+            
+          </h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2018-01-26 00:00:00" itemprop="dateCreated datePublished" datetime="2018-01-26T00:00:00+08:00">2018-01-26</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2018-03-14 00:00:00" itemprop="dateModified" datetime="2018-03-14T00:00:00+08:00">2018-03-14</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Programming-Language/" itemprop="url" rel="index"><span itemprop="name">Programming Language</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Programming-Language/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Programming-Language/Java/构建工具/" itemprop="url" rel="index"><span itemprop="name">构建工具</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>作为Java世界事实上的构建标准，maven被几乎所有的项目使用着。 但是如果任何工具一样，总会有或多或少的最佳实践或者说避坑选项。 本节尝试列出根据我的经验所“认为”的一些实践经验， 不敢称为“最佳实践”，“项目实践”姑且可以。</p>
+<p>本文假设具备基础的maven使用经验，了解如何使用maven,如何添加依赖如何打包。 本文的目的仅仅是介绍maven在项目中一些常用、非常重要的概念， 使得开发人员对于maven有个整体的概念。 具体的配置需要另行查阅文档。</p>
+<a id="more"></a>
+<h3 id="模块及版本管理"><a href="#模块及版本管理" class="headerlink" title="模块及版本管理"></a>模块及版本管理</h3><h4 id="包定义"><a href="#包定义" class="headerlink" title="包定义"></a>包定义</h4><p>maven采用3个属性定义一个包：</p>
+<ul>
+<li>goupId</li>
+<li>artifactId</li>
+<li>version</li>
+</ul>
+<p>这几个可以定义一个具体的包，他们通常都是小写。 <code>groupId</code>定义了你的组织名称，比如<code>org.springframework</code> ,<code>artifactId</code>则是包(模块)名称，比如<code>spring</code>。<code>version</code>是版本。其中，<code>version</code>分为如下两种：</p>
+<ul>
+<li>快照版（<strong>以<code>-SNAPSHOT</code>结尾</strong>）</li>
+<li>稳定版（ <strong> 没有以<code>-SNAPSHOT</code>结尾</strong>）</li>
+</ul>
+<p>两者的区别是  快照版 的在每次使用maven构建的时候，都会去<em>maven仓库</em>查询是否有新版本。如果有则会更新本地缓存。 而稳定版则会优先使用本地缓存的包，仅在本地缓存没有的情况下才会去<em>maven仓库</em>寻找并下载。</p>
+<h4 id="仓库"><a href="#仓库" class="headerlink" title="仓库"></a>仓库</h4><p><em>maven仓库</em>这里有2个概念：</p>
+<ul>
+<li><em>maven仓库</em><br>默认情况下，这个指的是<code>search.maven.org</code>。 项目中推荐自己搭建一个maven仓库，使得项目源码可以方便的推送上去而不用担心安全问题，通常称为 私库， 使用<code>nexus</code></li>
+<li>本地缓存<br>默认情况下，是用户目录下的<code>.m2</code>目录，这里就相当于上面的<em>maven仓库</em>在本地的一个缓存，构建时下载过的包都会在这里存在一份。 对于非快照版的依赖，则会优先使用本地缓存的包。</li>
+</ul>
+<p>所以一个建议就是对于一个多模块项目， 开发时模块之间的互相依赖使用快照版本，上线时使用稳定版本。<em>对于外部依赖项，任何时候都建议使用稳定版而不是开发版</em></p>
+<h4 id="pom-xml配置建议"><a href="#pom-xml配置建议" class="headerlink" title="pom.xml配置建议"></a><code>pom.xml</code>配置建议</h4><p>对于定义版本信息，非常建议通过属性<code>properties</code>的方式来声明，便于管理。例如可以声明一个sping版本的<code>properties</code>，所有依赖的spring各种包都使用这个属性来指定版本，便于统一管理。</p>
+<p>每个模块都有其模块打包目标，比如是一个web项目，通常就会是<code>war</code>包；对于一个父模块，会是<code>pom</code>；对于一个可执行项目，会是<code>jar</code>包（默认就是）。 这个通过在对应的<code>pom.xml</code>中配置<code>&lt;packaging&gt;pom&lt;/packaging&gt;</code></p>
+<h3 id="依赖管理"><a href="#依赖管理" class="headerlink" title="依赖管理"></a>依赖管理</h3><p>依赖管理是一个构建工具最为重要的功能，C系使用<code>makefile</code>来描述一个项目的依赖项，但是显得有点晦涩难懂。maven的则要简单的多，通过在POM文件中添加指定的包信息即可，maven会自动的在网络或者本地缓存中搜寻指定的包。 添加一个依赖时注意如下的事项：</p>
+<ul>
+<li><p>依赖传递<br>比如，你依赖一个A包，A包依赖B包，B包依赖C包。 那么你在添加A包依赖的时候同时就添加了B，C 2个包的依赖，没有特殊处理的情况下，在打包的时候，他们都会被打进最终的包中。<br>有一个特殊配置项<code>exclusions</code>，可以用来指定在这个依赖中被排除的包。 比如上面的例子，如果在<code>exclusions</code>中添加了C的项，那么最终打的包就不会包含C这个包。对于一些较大的依赖项（典型的就是dubbo），是非常有必要的。 否则，项目中很可能会出现很多同一个库不同的版本，这样很容易引起API之间的兼容性问题。</p>
+</li>
+<li><p>依赖作用范围<br>上面说到的依赖项还有一个配置项，就是<code>scope</code>。maven的<code>scope</code>有6种值：</p>
+<ul>
+<li><code>compile</code><br>默认的范围就是他。 在所有的<code>ClassPath</code>中都可见</li>
+<li><code>provided</code><br>典型使用场景是<code>servlet api</code>，我们希望使用web容器（比如tomcat）提供的时候就可以选择这个范围。</li>
+<li><code>runtime</code><br>编译时不需要，运行时才需要。比如JDBC的实现，编译的时候只需要用到JDK的JDBC API，但是运行时肯定需要具体实现（这里涉及到一个叫做SPI的机制）</li>
+<li><code>test</code><br>仅在测试中需要，<code>CLASSPATH</code>也仅限于<code>test</code></li>
+<li><code>system</code><br>类似<code>provided</code>，但是需要显示的提供jar</li>
+<li><code>import</code><br>仅在<code>dependencyManagement</code>中的<code>type</code>为<code>POM</code>时有效，仅仅指定依赖的位置。 这个标签下文会解释。</li>
+</ul>
+</li>
+</ul>
+<p>在了解上面的2项过后，添加依赖时就可以做到大概心中有数了。 但是对于一个模块较多的项目，比如如下的结构：</p>
+<p>–A<br>—-A1<br>——-A1-1<br>—-A2<br>——-A2-1<br>——-A2-2</p>
+<p>该项目有A和B两个模块， A中又分为A1，A2两个模块，其中，A1还有子模块，等等。这种情况，如果A中定义了某些依赖，A1中又定义一些，A1-1又定义一些，稍有不同，他们定义的还是不同的版本，在管理起来就会非常麻烦。maven提供了一种依赖管理的机制，也就是<code>dependencyManagement</code><br><code>dependencyManagement</code>是一种集中式的依赖管理，也就是说，可以把一个模块的所有依赖都声明在一个<code>dependencyManagement</code>中（特别是定义版本信息），子模块继承过去再声明需要哪些包以及对应的类型等信息，但是不用再指定版本信息。 使用这种方式可以规避多模块项目中由于子模块添加了不同版本依赖导致的兼容性问题。<br>使用方式也很简单，直接在根POM中使用<code>dependencyManagement</code>包围<code>dependencies</code>，其中的每个<code>dependency</code>指明版本及<code>exclusions</code>等信息，子模块仅需声明<code>goupId,artifactId</code>。</p>
+<h3 id="构建管理"><a href="#构建管理" class="headerlink" title="构建管理"></a>构建管理</h3><p>maven构建分为多个阶段。默认情况下，有如下几个阶段：</p>
+<ul>
+<li><code>validate</code></li>
+<li><code>compile</code></li>
+<li><code>test</code></li>
+<li><code>package</code><br>打包当前项目，比如web项目为war包（需要手动指定），普通java项目为jar包</li>
+<li><code>verify</code></li>
+<li><code>install</code><br>安装到本地缓存，前面的模块及版本管理说过</li>
+<li><code>deploy</code><br>发布到maven仓库中（一般会是自己搭建的maven私库）</li>
+</ul>
+<p>调用<code>mvn install</code>会顺序调用<code>validate, compile, test, package，verify，install</code>。而<code>install</code>命令会将所有的包安装到本地的<code>.m2</code>目录，如同前面所说，其他模块依赖了当前<code>install</code>的包的话则会使用本地的版本匹配的包，而快照的依赖则会去配置的仓库中寻找、并且和本地的对比谁是最新的然后使用它。</p>
+<p>调用<code>mvn deploy</code>会自动调用构建等过程，然后将指定包推送到<code>POM</code>文件中配置的<code>distributionManagement</code>节点地址中去。 如果其他项目引用了当前项目的包，推送上去过后， 其他项目打包时则会根据上面说的快照与非快照依赖更新依赖包。</p>
+<h3 id="插件管理"><a href="#插件管理" class="headerlink" title="插件管理"></a>插件管理</h3><p>插件是maven依赖生存的工具，上面构建的几个阶段其实就是通过相应的插件来完成的。 默认的几个阶段对于单纯打包来说够用，但是通常一个项目还需要配置其他项。 如下是几个非常典型的</p>
+<h4 id="编译、字节码的JDK配置"><a href="#编译、字节码的JDK配置" class="headerlink" title="编译、字节码的JDK配置"></a>编译、字节码的JDK配置</h4><p>通常会使用 <code>maven-compiler-plugin</code> 插件来指定编译当前项目使用的JDK版本以及生成的字节码的版本。</p>
+<h4 id="资源文件编码"><a href="#资源文件编码" class="headerlink" title="资源文件编码"></a>资源文件编码</h4><p>通常会使用 <code>maven-resources-plugin</code> 来配置编码为<code>utf-8</code>.<br>同时，该插件还常常用来包含需要包含在最终包中的额外资源，比如包含某个<code>lib</code>,<code>word、excel</code>等等。</p>
+<h4 id="打包管理"><a href="#打包管理" class="headerlink" title="打包管理"></a>打包管理</h4><p>通常会使用<code>maven-assembly-plugin</code>插件来将源码打包成某种结构的压缩包，以便于编写shell脚本执行项目。 一个通常的配置:</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>maven-assembly-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">descriptor</span>&gt;</span>src/main/assembly/assembly.xml<span class="tag">&lt;/<span class="name">descriptor</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">finalName</span>&gt;</span>$&#123;project.artifactId&#125;<span class="tag">&lt;/<span class="name">finalName</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">executions</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">execution</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">id</span>&gt;</span>make-assembly<span class="tag">&lt;/<span class="name">id</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">phase</span>&gt;</span>package<span class="tag">&lt;/<span class="name">phase</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">goals</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">goal</span>&gt;</span>single<span class="tag">&lt;/<span class="name">goal</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">goals</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">execution</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">executions</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>其中<code>assembly.xml</code>如下</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">assembly</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">id</span>&gt;</span>assembly<span class="tag">&lt;/<span class="name">id</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">formats</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">format</span>&gt;</span>tar.gz<span class="tag">&lt;/<span class="name">format</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">formats</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">includeBaseDirectory</span>&gt;</span>true<span class="tag">&lt;/<span class="name">includeBaseDirectory</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">fileSets</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">fileSet</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">directory</span>&gt;</span>src/main/assembly/bin<span class="tag">&lt;/<span class="name">directory</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">outputDirectory</span>&gt;</span>bin<span class="tag">&lt;/<span class="name">outputDirectory</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">fileMode</span>&gt;</span>0755<span class="tag">&lt;/<span class="name">fileMode</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">fileSet</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">fileSet</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">directory</span>&gt;</span>src/main/assembly/conf<span class="tag">&lt;/<span class="name">directory</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">outputDirectory</span>&gt;</span>conf<span class="tag">&lt;/<span class="name">outputDirectory</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">fileMode</span>&gt;</span>0644<span class="tag">&lt;/<span class="name">fileMode</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">fileSet</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">fileSets</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">dependencySets</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">dependencySet</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">outputDirectory</span>&gt;</span>lib<span class="tag">&lt;/<span class="name">outputDirectory</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">dependencySet</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">dependencySets</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">assembly</span>&gt;</span></span><br></pre></td></tr></table></figure>
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/01/18/Java/Framework/MyBatis/Mybatis源码分析（8）-mybatis-spring的事务管理/" rel="next" title="Mybatis源码分析（8）-mybatis-spring的事务管理">
+                <i class="fa fa-chevron-left"></i> Mybatis源码分析（8）-mybatis-spring的事务管理
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/02/03/Engineering/《代码大全》读书笔记3-架构设计的层次/" rel="prev" title="《代码大全》读书笔记3-架构设计的层次">
+                《代码大全》读书笔记3-架构设计的层次 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">cupofish@gmail.com</p>
+              <div class="site-description motion-element" itemprop="description"></div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">42</span>
+                    <span class="site-state-item-name">posts</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">23</span>
+                    <span class="site-state-item-name">categories</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">27</span>
+                    <span class="site-state-item-name">tags</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  
+                  
+                    
+                  
+                  
+                    
+                  
+                  <a href="https://github.com/anguslean" title="GitHub &rarr; https://github.com/anguslean" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+            </div>
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#模块及版本管理"><span class="nav-number">1.</span> <span class="nav-text">模块及版本管理</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#包定义"><span class="nav-number">1.1.</span> <span class="nav-text">包定义</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#仓库"><span class="nav-number">1.2.</span> <span class="nav-text">仓库</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#pom-xml配置建议"><span class="nav-number">1.3.</span> <span class="nav-text">pom.xml配置建议</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#依赖管理"><span class="nav-number">2.</span> <span class="nav-text">依赖管理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#构建管理"><span class="nav-number">3.</span> <span class="nav-text">构建管理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#插件管理"><span class="nav-number">4.</span> <span class="nav-text">插件管理</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#编译、字节码的JDK配置"><span class="nav-number">4.1.</span> <span class="nav-text">编译、字节码的JDK配置</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#资源文件编码"><span class="nav-number">4.2.</span> <span class="nav-text">资源文件编码</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#打包管理"><span class="nav-number">4.3.</span> <span class="nav-text">打包管理</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+    <div id="sidebar-dimmer"></div>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2021</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">cupofish@gmail.com</span>
+
+  
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.0"></script>
+
+  <script src="/js/motion.js?v=7.1.0"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/affix.js?v=7.1.0"></script>
+
+  <script src="/js/schemes/pisces.js?v=7.1.0"></script>
+
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.0"></script>
+<script src="/js/post-details.js?v=7.1.0"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.0"></script>
+
+
+  
+
+  
+
+  
+
+  
+  
+
+<script>
+  var disqus_config = function() {
+    this.page.url = "http://www.anguslean.cn/2018/01/26/Tool/maven项目实践/";
+    this.page.identifier = "2018/01/26/Tool/maven项目实践/";
+    this.page.title = 'maven项目实践';
+    };
+  function loadComments() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://anguslean.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', '' + +new Date());
+    (d.head || d.body).appendChild(s);
+  }
+  
+    $(function() {
+      var offsetTop = $('#comments').offset().top - $(window).height();
+      if (offsetTop <= 0) {
+        // load directly when there's no a scrollbar
+        loadComments();
+      } else {
+        $(window).on('scroll.disqus_scroll', function() {
+          // offsetTop may changes because of manually resizing browser window or lazy loading images.
+          var offsetTop = $('#comments').offset().top - $(window).height();
+          var scrollTop = $(window).scrollTop();
+
+          // pre-load comments a bit? (margin or anything else)
+          if (offsetTop - scrollTop < 60) {
+            $(window).off('.disqus_scroll');
+            loadComments();
+          }
+        });
+      }
+    });
+  
+</script>
+
+
+
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

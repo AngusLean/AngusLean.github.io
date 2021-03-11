@@ -58,6 +58,7 @@ jobs:
         git config user.email "cupofish"
         git add .
         git commit -m "GitHub Actions Auto Builder at $(date +'%Y-%m-%d %H:%M:%S')"
-        git push --force --quiet "https://${{ secrets.DEPLOY_KEY }}@$GITHUB_REPO" master:master
+        # git push --force --quiet "https://${{ secrets.DEPLOY_KEY }}@$GITHUB_REPO" master:master
+        hexo g -d
         # git push --force --quiet "https://RoYFbFDSfM:${{ secrets.CODING_TOKEN }}@$CODING_REPO" master:master
         # git push --force --quiet "https://yifanzheng:${{ secrets.GITEE_ACCESS_TOKEN }}@$GITEE_REPO" master:master

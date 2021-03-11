@@ -81,7 +81,9 @@ theme: next
 # Deployment
 ## Docs: https://hexo.io/docs/deployment.html
 deploy:
-  type: git
-  repo: git@github.com:AngusLean/AngusLean.github.io.git
-  branch: master
-  message: auto
+  repo:
+    token: $HEXO_DEPLOY_PRI
+    github: git@github.com:AngusLean/AngusLean.github.io.git
+    github:
+      url: git@github.com:AngusLean/AngusLean.github.io.git
+      branch: master

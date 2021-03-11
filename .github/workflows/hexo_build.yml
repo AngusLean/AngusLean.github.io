@@ -41,7 +41,6 @@ jobs:
         env:
           HEXO_DEPLOY_PRI: ${{secrets.DEPLOY_KEY}}
         run: |
-          cd ./public
           sudo timedatectl set-timezone "Asia/Shanghai"
           mkdir -p ~/.ssh/
           echo "$HEXO_DEPLOY_PRI" > ~/.ssh/id_rsa

@@ -1,61 +1,63 @@
-name: CI
+name: Blog CI/CD
 
+# 触发条件：在 push 到 hexo-blog-backup 分支后触发
 on:
   push:
-    branches:
+    branches: 
       - source
 
 env:
-  GIT_USER: AngusLean
-  GIT_EMAIL: cupofish@gmail.com
-  SOURCE_REPO: AngusLean/AngusLean.github.io
-  SOURCE_BRANCH: source
-  DEPLOY_REPO: AngusLean/AngusLean.github.io
-  DEPLOY_BRANCH: master
+  TZ: Asia/Shanghai
 
 jobs:
-  build:
-    name: Build on node ${{ matrix.node_version }} and ${{ matrix.os }}
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-        node_version: [12.x]
+  blog-cicd:
+    name: Hexo blog build & deploy
+    runs-on: ubuntu-latest # 使用最新的 Ubuntu 系统作为编译部署的环境
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+    - name: Checkout codes
+      uses: actions/checkout@v2
 
-      - name: Checkout deploy repo
-        uses: actions/checkout@v2
-        with:
-          repository: ${{ env.SOURCE_REPO }}
-          ref: ${{ env.SOURCE_BRANCH }}
+    - name: Setup node
+      # 设置 node.js 环境
+      uses: actions/setup-node@v1
+      with:
+        node-version: '12.x'
 
-      - name: Use Node.js ${{ matrix.node_version }}
-        uses: actions/setup-node@v1
-        with:
-          node-version: ${{ matrix.node_version }}
-          
-      - name: Install hexo dependencies
-          # 下载 hexo-cli 脚手架及相关安装包
-        run: |
-          npm install -g hexo-cli
-          npm install hexo-deployer-git --save
-        
-      - name: Configuration environment
-        env:
-          HEXO_DEPLOY_PRI: ${{secrets.DEPLOY_KEY}}
-        run: |
-          sudo timedatectl set-timezone "Asia/Shanghai"
-          mkdir -p ~/.ssh/
-          echo "$HEXO_DEPLOY_PRI" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
-          git config --global user.name $GIT_USER
-          git config --global user.email $GIT_EMAIL
+    - name: Cache node modules
+      # 设置包缓存目录，避免每次下载
+      uses: actions/cache@v1
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
 
+    - name: Install hexo dependencies
+      # 下载 hexo-cli 脚手架及相关安装包
+      run: |
+        npm install -g hexo-cli
+        npm install
 
-      - name: build and deploy
-        run: |
-          hexo clean && hexo generate && hexo deploy
+    - name: Generate files
+      # 编译 markdown 文件
+      run: |
+        hexo clean
+        hexo generate
+
+    - name: Deploy hexo blog
+      env: 
+        # Github 仓库
+        GITHUB_REPO: git@github.com:AngusLean/AngusLean.github.io.git
+        # Coding 仓库
+        # CODING_REPO: e.coding.net/yifanzheng/blogs.git
+        # Gitee 仓库
+        # GITEE_REPO: gitee.com/yifanzheng/yifangzheng.gitee.io.git
+      # 将编译后的博客文件推送到指定仓库
+      run: |
+        cd ./public && git init && git add .
+        git config user.name "anguslean"
+        git config user.email "cupofish@gmail.com"
+        git add .
+        git commit -m "GitHub Actions Auto Builder at $(date +'%Y-%m-%d %H:%M:%S')"
+        git push --force --quiet "https://${{ secrets.DEPLOY_KEY }}@$GITHUB_REPO" master:master
+        # git push --force --quiet "https://RoYFbFDSfM:${{ secrets.CODING_TOKEN }}@$CODING_REPO" master:master
+        # git push --force --quiet "https://yifanzheng:${{ secrets.GITEE_ACCESS_TOKEN }}@$GITEE_REPO" master:master

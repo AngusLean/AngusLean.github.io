@@ -86,3 +86,6 @@ deploy:
     github:
       url: git@github.com:AngusLean/AngusLean.github.io.git
       branch: master
+    gitee:
+      url: git@gitee.com:angus_lean/angus_lean.git
+      branch: master

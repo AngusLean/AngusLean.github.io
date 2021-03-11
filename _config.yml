@@ -44,11 +44,7 @@ highlight:
   auto_detect: true
   tab_replace:
   
-deploy:
-  type: git
-  repo: https://github.com/AngusLean/AngusLean.github.io
-  branch: master
-  message: auto
+
   
 # Home page setting
 # path: Root path for your blogs index page. (default = '')
@@ -85,4 +81,7 @@ theme: next
 # Deployment
 ## Docs: https://hexo.io/docs/deployment.html
 deploy:
-  type:
+  type: git
+  repo: git@github.com:AngusLean/AngusLean.github.io.git
+  branch: master
+  message: auto

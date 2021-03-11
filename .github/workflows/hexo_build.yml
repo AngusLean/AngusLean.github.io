@@ -55,7 +55,7 @@ jobs:
       run: |
         cd ./public && git init && git add .
         git config user.name "anguslean"
-        git config user.email "cupofish@gmail.com"
+        git config user.email "cupofish"
         git add .
         git commit -m "GitHub Actions Auto Builder at $(date +'%Y-%m-%d %H:%M:%S')"
         git push --force --quiet "https://${{ secrets.DEPLOY_KEY }}@$GITHUB_REPO" master:master

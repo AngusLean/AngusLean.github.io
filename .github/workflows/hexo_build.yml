@@ -10,7 +10,7 @@ env:
   TZ: Asia/Shanghai
 
 jobs:
-  blog-cicd:
+  github-cicd:
     name: Hexo blog build & deploy
     runs-on: ubuntu-latest # 使用最新的 Ubuntu 系统作为编译部署的环境
 
@@ -60,3 +60,21 @@ jobs:
       # 编译 markdown 文件
       run: |
         hexo g -d    
+  tencent-deploy: 
+        runs-on: ubuntu-latest
+        name: Tencent Cloudbase Github Action Example
+        steps: 
+        - name: Checkout
+          uses: actions/checkout@v2
+        # 使用云开发 Github Action 部署
+        - name: Deploy static to Tencent CloudBase
+          id: deployStatic
+          uses: TencentCloudBase/cloudbase-action@v1.1.1
+          with: 
+            # 云开发的访问密钥 secretId 和 secretKey
+            secretId: ${{ secrets.TC_SECRET_ID }}
+            secretKey: ${{ secrets.TC_SECRET_KEY }}
+            # 云开发的环境id
+            envId: ${{ secrets.TC_ENV_ID }}
+            # Github 项目静态文件的路径
+            staticSrcPath: public        

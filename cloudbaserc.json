@@ -9,8 +9,8 @@
         "inputs": {
           "installCommand": "npm install --prefer-offline --no-audit --progress=false hexo-cli -g",
           "buildCommand": "npm install && hexo g",
-          "outputPath": "dist",
-          "cloudPath": "/path",
+          "outputPath": "public",
+          "cloudPath": "/",
           "ignore": [".git", ".github", "node_modules", "cloudbaserc.js"]
         }
       }
